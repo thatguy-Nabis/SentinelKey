@@ -1,0 +1,649 @@
+{
+  "info": {
+    "_postman_id": "c71a34b2-8d99-4c12-8703-a26a31c51881",
+    "name": "SentinelKey Security Stack API",
+    "description": "Postman collection covering Phase 1 (Auth + RBAC) and Phase 2 (MFA) endpoints for SentinelKey.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mfaToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Phase 1 - Auth & RBAC",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinelkey.local\",\n  \"password\": \"SuperSecretAdmin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login (Without MFA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}",
+                  "if (res.data?.refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "}",
+                  "if (res.data?.mfaToken) {",
+                  "    pm.collectionVariables.set('mfaToken', res.data.mfaToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinelkey.local\",\n  \"password\": \"SuperSecretAdmin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token Rotation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}",
+                  "if (res.data?.refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - MFA",
+      "item": [
+        {
+          "name": "MFA Setup (Initiate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/mfa/setup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "mfa", "setup"]
+            }
+          }
+        },
+        {
+          "name": "MFA Setup Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/mfa/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "mfa", "verify"]
+            }
+          }
+        },
+        {
+          "name": "MFA Login Challenge Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}",
+                  "if (res.data?.refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mfaToken\": \"{{mfaToken}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/mfa/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "mfa", "verify"]
+            }
+          }
+        },
+        {
+          "name": "MFA Disable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"SuperSecretAdmin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/mfa/disable",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "mfa", "disable"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 - Logging & IDS",
+      "item": [
+        {
+          "name": "Get Security Logs (Paginated & Filterable)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logs?page=1&limit=20&severity=medium",
+              "host": ["{{baseUrl}}"],
+              "path": ["logs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "severity",
+                  "value": "medium"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get IDS Alerts (Filterable)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts?status=open&severity=high",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "severity",
+                  "value": "high"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/:id/acknowledge",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", ":id", "acknowledge"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "alert-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/:id/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", ":id", "resolve"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "alert-id-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 5 - Encryption & Files",
+      "item": [
+        {
+          "name": "Upload Encrypted File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalName\": \"classified-memo.txt\",\n  \"mimeType\": \"text/plain\",\n  \"contentBase64\": \"U2VudGluZWxLZXkgU2VjdXJpdHkgU3RhY2sgUGhhc2UgNSBFbmNyeXB0aW9uIFZlcmlmaWVkIQ==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "upload"]
+            }
+          }
+        },
+        {
+          "name": "List Encrypted Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["files"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download & Decrypt File",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/:id/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", ":id", "download"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "file-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotate File Encryption Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/:id/rotate",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", ":id", "rotate"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "file-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Key Registry Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/keys/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "keys", "status"]
+            }
+          }
+        },
+        {
+          "name": "Rotate Master Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/keys/rotate",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "keys", "rotate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 7 - Compliance & Classification",
+      "item": [
+        {
+          "name": "Classify Security Event Sequence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": {\n    \"type\": \"AUTH_LOGIN_FAILED\",\n    \"ip\": \"203.0.113.88\",\n    \"userId\": \"user-victim\",\n    \"timestamp\": \"2026-09-27T12:00:00Z\"\n  },\n  \"history\": [\n    {\n      \"type\": \"AUTH_LOGIN_FAILED\",\n      \"ip\": \"203.0.113.88\",\n      \"userId\": \"user-victim\",\n      \"timestamp\": \"2026-09-27T11:59:45Z\"\n    },\n    {\n      \"type\": \"AUTH_LOGIN_FAILED\",\n      \"ip\": \"203.0.113.88\",\n      \"userId\": \"user-victim\",\n      \"timestamp\": \"2026-09-27T11:59:30Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/classify/event",
+              "host": ["{{baseUrl}}"],
+              "path": ["classify", "event"]
+            }
+          }
+        },
+        {
+          "name": "Classify File Payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"payroll_export.pdf\",\n  \"contentBase64\": \"TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAA=\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/classify/file",
+              "host": ["{{baseUrl}}"],
+              "path": ["classify", "file"]
+            }
+          }
+        },
+        {
+          "name": "Classify Inbound Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": {\n    \"from\": \"support@paypa1.com\",\n    \"to\": \"finance@sentinelkey.local\",\n    \"subject\": \"URGENT: Verify your account immediately\",\n    \"bodyText\": \"Your access is suspended. Verify credentials at bit.ly/verify.\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/classify/email",
+              "host": ["{{baseUrl}}"],
+              "path": ["classify", "email"]
+            }
+          }
+        },
+        {
+          "name": "List Compliance Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/policies",
+              "host": ["{{baseUrl}}"],
+              "path": ["policies"]
+            }
+          }
+        },
+        {
+          "name": "Get Classification History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/classify/history?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["classify", "history"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
