@@ -1,0 +1,171 @@
+/* ==========================================================================
+   SentinelKey Design System & Exact Color Tokens
+   - Image 1: Landing Page (Docker-style hybrid dark hero + light body + dark footer)
+   - Image 2: Hub Console (Deep obsidian/violet dark theme #0D0B18)
+   ========================================================================== */
+
+:root {
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Landing Page Palette (Image 1) */
+  --landing-hero-bg: #0a0d14;
+  --landing-hero-cta: #1d63ed;
+  --landing-hero-cta-hover: #174fce;
+  --landing-spotlight-bg: #ffffff;
+  --landing-spotlight-border: rgba(37, 99, 235, 0.35);
+  --landing-body-bg: #ffffff;
+  --landing-section-alt: #f8f9fc;
+  --landing-text-head: #0f172a;
+  --landing-text-body: #475569;
+  --landing-text-muted: #64748b;
+  --landing-terminal-bg: #111625;
+  --landing-footer-bg: #080c14;
+  --landing-footer-border: #1e2638;
+
+  /* Hub Console Palette (Image 2 - Exact) */
+  --hub-bg-app: #0d0b18;
+  --hub-topbar-bg: #131021;
+  --hub-sidebar-bg: #131021;
+  --hub-sidebar-border: #221b3b;
+  --hub-card-bg: #171328;
+  --hub-card-border: #292044;
+  --hub-card-hover: #1f1936;
+  --hub-purple-primary: #6b4de6;
+  --hub-purple-hover: #7c3aed;
+  --hub-purple-deep: #4c1d95;
+  --hub-purple-light: #a78bfa;
+  --hub-purple-gradient: linear-gradient(135deg, #4c1d95 0%, #311368 60%, #1e0e45 100%);
+  --hub-status-emerald: #10b981;
+  --hub-status-emerald-bg: rgba(16, 185, 129, 0.12);
+  --hub-text-primary: #f8fafc;
+  --hub-text-secondary: #94a3b8;
+  --hub-text-muted: #64748b;
+  --hub-sidebar-active: rgba(107, 77, 230, 0.22);
+  --hub-sidebar-active-border: #8b5cf6;
+  --hub-dock-bg: #110d22;
+  --hub-dock-border: #2a2249;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  color: var(--landing-text-head);
+  background-color: var(--landing-body-bg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0b18;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2249;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3c3268;
+}
+
+/* Floating monospace letter animation in landing hero */
+@keyframes floatGlyph {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(-10px) rotate(3deg);
+    opacity: 0.28;
+  }
+}
+
+.animate-glyph {
+  animation: floatGlyph 6s ease-in-out infinite;
+}
+
+/* Glowing border cards on landing */
+.spotlight-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1d63ed, #8b5cf6);
+  opacity: 0.85;
+}
+
+.spotlight-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(29, 99, 237, 0.15);
+  border-color: #93c5fd;
+}
+
+/* Hub Console Card (Image 2) */
+.hub-card {
+  background: var(--hub-card-bg);
+  border: 1px solid var(--hub-card-border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.hub-card:hover {
+  background: var(--hub-card-hover);
+  border-color: #3b2e61;
+  transform: translateY(-2px);
+}
+
+/* Pulsing Enclave Dot */
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+.pulse-emerald {
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

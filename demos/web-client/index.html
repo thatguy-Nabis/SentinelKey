@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentinelKey — Web Client Demo</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #121826;
+      --panel-2: #1a2130;
+      --border: #263043;
+      --text: #e5eaf3;
+      --muted: #8b95a8;
+      --accent: #22d3ee;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --orange: #fb923c;
+      --rose: #f43f5e;
+      --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    header h1 { font-size: 1.4rem; margin: 0; letter-spacing: -0.01em; }
+    header .sub { color: var(--muted); font-size: 0.85rem; margin: 2px 0 0; }
+    .spacer { flex: 1; }
+    .conn { display: flex; align-items: center; gap: 8px; }
+    .conn input {
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; width: 260px;
+    }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; }
+    .status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .status-dot.bad { background: var(--rose); box-shadow: 0 0 8px var(--rose); }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; margin-bottom: 18px;
+    }
+    .card h2 { font-size: 0.95rem; margin: 0 0 4px; }
+    .card .hint { color: var(--muted); font-size: 0.78rem; margin: 0 0 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    input[type="text"], input[type="password"], input[type="email"], textarea, select {
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 9px 11px; font-size: 0.9rem; width: 100%;
+      font-family: inherit;
+    }
+    .row > * { flex: 1; min-width: 120px; }
+    .btn {
+      border: none; border-radius: 8px; padding: 9px 16px; font-size: 0.88rem; cursor: pointer;
+      background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+      transition: filter .12s ease, transform .05s ease;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, #0891b2, #2563eb); border: none; color: white; }
+    .btn-ghost { background: transparent; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; word-break: break-all; }
+    .hidden { display: none !important; }
+    .banner {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 18px;
+    }
+    .banner .who { font-weight: 600; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem;
+      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      background: var(--panel-2); border: 1px solid var(--border);
+    }
+    .badge.safe { color: var(--green); border-color: var(--green); }
+    .badge.flagged { color: var(--amber); border-color: var(--amber); }
+    .badge.quarantined { color: var(--orange); border-color: var(--orange); }
+    .badge.blocked { color: var(--rose); border-color: var(--rose); }
+    #result {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; margin-bottom: 18px;
+    }
+    #result h3 { margin: 0 0 8px; font-size: 0.95rem; }
+    #result .score { font-size: 1.6rem; font-weight: 700; }
+    #result ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.85rem; }
+    #result .err { color: var(--rose); white-space: pre-wrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    .footer-note { color: var(--muted); font-size: 0.78rem; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>🛡️ SentinelKey <span style="color:var(--accent)">Web Client</span></h1>
+        <p class="sub">A dummy website that signs in, scans URLs/files, encrypts fields, and reads the IDS feed.</p>
+      </div>
+      <div class="spacer"></div>
+      <div class="conn">
+        <span class="status-dot" id="status-dot"></span>
+        <input type="text" id="base-url" value="http://localhost:4000" spellcheck="false" />
+        <button class="btn btn-sm" id="health-btn">Health</button>
+      </div>
+    </header>
+
+    <!-- Auth -->
+    <div class="card" id="auth-card">
+      <h2>Sign in / Register</h2>
+      <p class="hint">The <strong>first registered account becomes admin</strong> (unless a bootstrap admin is configured). Use admin for full access to every demo below.</p>
+      <div class="row" style="margin-bottom:10px;">
+        <input type="email" id="email" placeholder="admin@example.com" autocomplete="username" />
+        <input type="password" id="password" placeholder="password (min 8 chars)" autocomplete="current-password" />
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" id="login-btn">Sign in</button>
+        <button class="btn" id="register-btn">Register</button>
+      </div>
+    </div>
+
+    <!-- MFA challenge -->
+    <div class="card hidden" id="mfa-card">
+      <h2>Two-factor authentication required</h2>
+      <p class="hint">Enter the 6-digit code from your authenticator app.</p>
+      <div class="row">
+        <input type="text" id="mfa-code" placeholder="000000" maxlength="12" inputmode="numeric" />
+        <button class="btn btn-primary" id="mfa-verify-btn">Verify</button>
+        <button class="btn" id="mfa-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Signed-in banner -->
+    <div class="banner hidden" id="signed-in-banner">
+      <span class="who" id="who"></span>
+      <span class="mono" style="color:var(--muted)" id="token-preview"></span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm btn-ghost" id="logout-btn">Log out</button>
+    </div>
+
+    <div class="grid">
+      <!-- Scanner -->
+      <div class="card">
+        <h2>URL / Link Scanner</h2>
+        <p class="hint">Scored by the API's phishing rules (lookalike domains, href mismatch, bad TLDs).</p>
+        <div class="row" style="margin-bottom:10px;">
+          <input type="text" id="url-input" placeholder="https://paypa1.com/login" spellcheck="false" />
+          <button class="btn btn-primary" id="url-scan-btn" style="flex:0 0 auto;">Scan</button>
+        </div>
+        <h2 style="margin-top:14px;">Text Scanner</h2>
+        <textarea id="text-input" rows="3" placeholder="Paste suspicious text, e.g. 'Urgent wire transfer — verify your account immediately'"></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="text-scan-btn">Scan text</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>File Scanner</h2>
+        <p class="hint">Full-file SHA-256 + content sent to the classifier (magic-byte, entropy, extension, hash rules).</p>
+        <input type="file" id="file-input" />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Field Encryption</h2>
+        <p class="hint">Round-trips a secret through the API's AES-256-GCM field encryption.</p>
+        <div class="row" style="margin-bottom:10px;">
+          <input type="text" id="field-input" placeholder="PII: SSN-987-65-4321" />
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="encrypt-btn">Encrypt</button>
+          <button class="btn" id="decrypt-btn">Decrypt (paste ciphertext)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>IDS Feed</h2>
+        <p class="hint">Pull the most recent security events and intrusion alerts.</p>
+        <div class="row">
+          <button class="btn btn-primary" id="logs-btn">Load events</button>
+          <button class="btn" id="alerts-btn">Load alerts</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result" class="hidden"></div>
+    <div class="card hidden" id="table-card">
+      <h2 id="table-title">Results</h2>
+      <div id="table-body"></div>
+    </div>
+
+    <p class="footer-note">
+      Points the browser directly at the SentinelKey API (<code>CORS</code> is open). Requires the API + MongoDB running locally.
+      Endpoints used: <code>/auth/login|register|mfa/verify</code>, <code>/classify/email|file</code>,
+      <code>/files/encrypt-field|decrypt-field</code>, <code>/logs</code>, <code>/alerts</code>.
+    </p>
+  </div>
+
+  <script>
+    const state = { baseUrl: 'http://localhost:4000', token: null, user: null, mfaToken: null };
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) =>
+      String(s ?? '').replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function base() { return state.baseUrl.replace(/\/+$/, ''); }
+
+    async function api(path, { method = 'GET', body, auth = true } = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (auth && state.token) headers['Authorization'] = 'Bearer ' + state.token;
+      const res = await fetch(base() + path, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      let json = {};
+      try { json = await res.json(); } catch (_) { /* non-JSON */ }
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + ': ' + (json?.error?.message || res.statusText));
+      }
+      return json; // { success, data, ... }
+    }
+
+    function showResult(title, html, isError) {
+      const el = $('result');
+      el.classList.remove('hidden');
+      el.innerHTML =
+        '<h3>' + esc(title) + '</h3>' +
+        (isError ? '<div class="err">' + esc(html) + '</div>' : html);
+    }
+    function hideTable() { $('table-card').classList.add('hidden'); }
+
+    function verdictBadge(v) {
+      return '<span class="badge ' + esc(v) + '">' + esc(v) + '</span>';
+    }
+
+    function renderVerdict(title, r) {
+      hideTable();
+      const rules = (r.matchedRules && r.matchedRules.length)
+        ? '<ul>' + r.matchedRules.map((x) => '<li><b>' + esc(x.ruleId) + '</b> — ' + esc(x.name || x.description || '') + ' <span class="mono">(+' + esc(x.score) + ')</span></li>').join('') + '</ul>'
+        : '<ul><li>No rules triggered.</li></ul>';
+      showResult(
+        title,
+        '<div class="row" style="align-items:center;gap:14px;">' +
+          verdictBadge(r.verdict) +
+          '<span class="score">' + esc(r.score) + '/100</span>' +
+          '<span style="color:var(--muted)">policy v' + esc(r.policyVersion) + '</span>' +
+        '</div>' + rules
+      );
+    }
+
+    function renderError(msg) {
+      hideTable();
+      showResult('Request failed', msg, true);
+    }
+
+    // ---- health ----
+    async function checkHealth() {
+      const dot = $('status-dot');
+      dot.className = 'status-dot';
+      try {
+        const res = await fetch(base() + '/health');
+        dot.className = 'status-dot ' + (res.ok ? 'ok' : 'bad');
+      } catch (_) {
+        dot.className = 'status-dot bad';
+      }
+    }
+
+    // ---- auth ----
+    function setBusy(b) {
+      ['login-btn', 'register-btn', 'url-scan-btn', 'text-scan-btn', 'encrypt-btn', 'decrypt-btn', 'logs-btn', 'alerts-btn', 'mfa-verify-btn']
+        .forEach((id) => { const el = $(id); if (el) el.disabled = b; });
+    }
+
+    function renderAuthState() {
+      const signedIn = !!state.token;
+      $('auth-card').classList.toggle('hidden', signedIn);
+      $('mfa-card').classList.add('hidden');
+      $('signed-in-banner').classList.toggle('hidden', !signedIn);
+      if (signedIn && state.user) {
+        $('who').textContent = state.user.email + '  ·  roles: ' + state.user.roles.join(', ');
+        $('token-preview').textContent = 'jwt: ' + state.token.slice(0, 24) + '…';
+      }
+    }
+
+    function finishAuth(data) {
+      state.token = data.accessToken || null;
+      state.user = data.user || null;
+      state.mfaToken = null;
+      renderAuthState();
+      if (state.token) {
+        showResult('Signed in', 'Authenticated as <b>' + esc(state.user?.email) + '</b> with roles <b>' + esc(state.user?.roles?.join(', ')) + '</b>.' +
+          (data.mfaEnabled ? ' MFA is enabled on this account.' : ''));
+      }
+    }
+
+    async function doAuth(mode) {
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      if (!email || !password) return renderError('Email and password are required.');
+      setBusy(true);
+      try {
+        const json = await api('/auth/' + mode, { method: 'POST', auth: false, body: { email, password } });
+        const d = json.data || {};
+        if (d.mfaRequired) {
+          state.mfaToken = d.mfaToken;
+          state.token = null;
+          state.user = null;
+          $('auth-card').classList.add('hidden');
+          $('mfa-card').classList.remove('hidden');
+          hideTable();
+        } else {
+          finishAuth(d);
+        }
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    async function verifyMfa() {
+      const code = $('mfa-code').value.trim();
+      if (!code || !state.mfaToken) return;
+      setBusy(true);
+      try {
+        const json = await api('/auth/mfa/verify', { method: 'POST', auth: false, body: { mfaToken: state.mfaToken, code } });
+        finishAuth(json.data || {});
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    function logout() {
+      state.token = null;
+      state.user = null;
+      state.mfaToken = null;
+      $('mfa-code').value = '';
+      renderAuthState();
+      $('result').classList.add('hidden');
+    }
+
+    // ---- scans ----
+    async function scanUrl() {
+      const url = $('url-input').value.trim();
+      if (!url) return renderError('Enter a URL to scan.');
+      setBusy(true);
+      try {
+        // Treat the scanned URL's hostname as the "sender" domain so the
+        // lookalike-domain rule (EML-001) checks the actual domain.
+        let host = 'unknown.invalid';
+        try { host = new URL(url.includes('://') ? url : 'http://' + url).hostname; } catch (_) {}
+        const json = await api('/classify/email', {
+          method: 'POST',
+          body: {
+            email: {
+              to: 'scanner@sentinelkey.local',
+              from: 'noreply@' + host,
+              subject: 'Web Client URL Scan: ' + url,
+              bodyText: 'Inspecting URL ' + url,
+              bodyHtml: '<a href="' + url + '">' + url + '</a>',
+            },
+          },
+        });
+        renderVerdict('URL scan: ' + url, json.data);
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    async function scanText() {
+      const text = $('text-input').value.trim();
+      if (!text) return renderError('Paste some text to scan.');
+      setBusy(true);
+      try {
+        const json = await api('/classify/email', {
+          method: 'POST',
+          body: {
+            email: {
+              to: 'scanner@sentinelkey.local',
+              from: 'scanner@sentinelkey.local',
+              subject: 'Web Client Text Scan',
+              bodyText: text,
+              bodyHtml: '<p>' + esc(text) + '</p>',
+            },
+          },
+        });
+        renderVerdict('Text scan', json.data);
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    function arrayBufferToBase64(buf) {
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+      }
+      return btoa(binary);
+    }
+
+    async function sha256Hex(buf) {
+      if (!crypto?.subtle) return undefined;
+      const h = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function scanFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      setBusy(true);
+      try {
+        const buf = await file.arrayBuffer();
+        const contentBase64 = arrayBufferToBase64(buf);
+        const sha256 = await sha256Hex(buf);
+        const json = await api('/classify/file', {
+          method: 'POST',
+          body: {
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            contentBase64,
+            sha256,
+          },
+        });
+        renderVerdict('File scan: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)', json.data);
+      } catch (e) { renderError(e.message); }
+      finally { input.value = ''; setBusy(false); }
+    }
+
+    // ---- encryption ----
+    async function encryptField() {
+      const value = $('field-input').value;
+      if (!value) return renderError('Enter a value to encrypt.');
+      setBusy(true);
+      try {
+        const json = await api('/files/encrypt-field', { method: 'POST', body: { value } });
+        const ct = json.data;
+        $('field-input').value = ct;
+        showResult('Encrypted', '<div class="mono">' + esc(ct) + '</div><p class="hint" style="margin-top:8px">Ciphertext copied into the input box — click <b>Decrypt</b> to round-trip it.</p>');
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    async function decryptField() {
+      const ct = $('field-input').value.trim();
+      if (!ct) return renderError('Enter ciphertext to decrypt.');
+      setBusy(true);
+      try {
+        const json = await api('/files/decrypt-field', { method: 'POST', body: { ciphertext: ct } });
+        showResult('Decrypted', '<div class="mono">' + esc(json.data) + '</div>');
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    // ---- IDS feed ----
+    function renderTable(title, rows, cols) {
+      const card = $('table-card');
+      card.classList.remove('hidden');
+      $('table-title').textContent = title;
+      $('table-body').innerHTML =
+        '<table><thead><tr>' + cols.map((c) => '<th>' + esc(c) + '</th>').join('') + '</tr></thead><tbody>' +
+        rows.map((r) => '<tr>' + r.map((c) => '<td>' + c + '</td>').join('') + '</tr>').join('') +
+        '</tbody></table>';
+    }
+
+    async function loadLogs() {
+      setBusy(true);
+      try {
+        const json = await api('/logs?limit=25');
+        const items = json.data || [];
+        hideResult();
+        renderTable('Security events (' + items.length + ')', items.map((e) => [
+          new Date(e.timestamp).toLocaleString(),
+          esc(e.type),
+          esc(e.severity),
+          esc(e.ip),
+          esc(e.userId || e.metadata?.email || '—'),
+        ]), ['Time', 'Type', 'Severity', 'IP', 'User']);
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    async function loadAlerts() {
+      setBusy(true);
+      try {
+        const json = await api('/alerts?limit=25');
+        const items = json.data || [];
+        hideResult();
+        renderTable('Intrusion alerts (' + items.length + ')', items.map((a) => [
+          esc(a.rule),
+          verdictBadge(a.severity),
+          esc(a.status),
+          esc(a.title),
+        ]), ['Rule', 'Severity', 'Status', 'Title']);
+      } catch (e) { renderError(e.message); }
+      finally { setBusy(false); }
+    }
+
+    function hideResult() { $('result').classList.add('hidden'); }
+
+    // ---- wire up ----
+    $('base-url').addEventListener('change', () => { state.baseUrl = $('base-url').value.trim() || 'http://localhost:4000'; checkHealth(); });
+    $('health-btn').addEventListener('click', checkHealth);
+    $('login-btn').addEventListener('click', () => doAuth('login'));
+    $('register-btn').addEventListener('click', () => doAuth('register'));
+    $('mfa-verify-btn').addEventListener('click', verifyMfa);
+    $('mfa-cancel-btn').addEventListener('click', () => { state.mfaToken = null; $('mfa-card').classList.add('hidden'); $('auth-card').classList.remove('hidden'); });
+    $('logout-btn').addEventListener('click', logout);
+    $('url-scan-btn').addEventListener('click', scanUrl);
+    $('text-scan-btn').addEventListener('click', scanText);
+    $('file-input').addEventListener('change', (e) => scanFile(e.target));
+    $('encrypt-btn').addEventListener('click', encryptField);
+    $('decrypt-btn').addEventListener('click', decryptField);
+    $('logs-btn').addEventListener('click', loadLogs);
+    $('alerts-btn').addEventListener('click', loadAlerts);
+
+    renderAuthState();
+    checkHealth();
+  </script>
+</body>
+</html>
