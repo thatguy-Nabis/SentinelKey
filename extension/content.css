@@ -1,0 +1,161 @@
+/**
+ * SentinelKey In-Page Threat Warning UI (content.css)
+ * Vanilla CSS glassmorphic security dialog overlay
+ */
+
+#sentinelkey-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 15, 29, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2147483647; /* Maximum z-index */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #f1f5f9;
+  animation: sk-fade-in 0.2s ease-out;
+}
+
+@keyframes sk-fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+#sentinelkey-modal-card {
+  width: 90%;
+  max-width: 520px;
+  background: #111827;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(239, 68, 68, 0.2);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.sk-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sk-shield-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.sk-title-box h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f87171;
+  letter-spacing: -0.3px;
+}
+
+.sk-title-box p {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.sk-verdict-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border-left: 4px solid #ef4444;
+  padding: 12px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.sk-verdict-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.sk-target-url {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 13px;
+  color: #fca5a5;
+  margin: 4px 0 0 0;
+}
+
+.sk-details-box {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.sk-rules-list {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.sk-rules-list li {
+  margin-bottom: 4px;
+}
+
+.sk-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.sk-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.sk-btn-primary {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.sk-btn-primary:hover {
+  background: #dc2626;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.sk-btn-secondary {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sk-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}

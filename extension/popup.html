@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SentinelKey Security Companion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <div class="shield-badge">🛡️</div>
+        <div>
+          <h1>SentinelKey</h1>
+          <span class="subtitle">Security Companion</span>
+        </div>
+      </div>
+      <div id="status-indicator" class="status-indicator offline">
+        <span class="status-dot"></span>
+        <span id="status-text">Checking...</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="popup-nav">
+      <button class="nav-tab active" data-tab="scanner">Scanner</button>
+      <button class="nav-tab" data-tab="incidents">Incidents (<span id="incident-count">0</span>)</button>
+      <button class="nav-tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- Tab 1: Scanner -->
+    <section id="tab-scanner" class="tab-pane active">
+      <div class="card">
+        <label for="scan-url-input" class="input-label">Quick URL / Link Scanner</label>
+        <div class="input-group">
+          <input type="text" id="scan-url-input" placeholder="https://suspicious-site.com" />
+          <button id="scan-url-btn" class="btn btn-primary">Scan</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label for="scan-file-input" class="input-label">Quick File Pre-Flight Scanner</label>
+        <div class="file-dropzone" id="file-dropzone">
+          <input type="file" id="scan-file-input" class="file-input-hidden" />
+          <div class="dropzone-text">
+            <span>📄 Click to choose or drag a file to scan</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="scan-result" class="scan-result hidden">
+        <!-- Injected via popup.js -->
+      </div>
+    </section>
+
+    <!-- Tab 2: Incidents -->
+    <section id="tab-incidents" class="tab-pane">
+      <div class="incidents-header">
+        <span>Blocked / Flagged Threats</span>
+        <button id="clear-incidents-btn" class="btn-text">Clear</button>
+      </div>
+      <div id="incidents-list" class="incidents-list">
+        <div class="empty-state">No security incidents detected.</div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Settings -->
+    <section id="tab-settings" class="tab-pane">
+      <div class="card">
+        <label for="api-url-input" class="input-label">SentinelKey API URL</label>
+        <input type="text" id="api-url-input" value="http://localhost:4000" />
+
+        <label for="api-token-input" class="input-label" style="margin-top: 12px;">JWT Access Token (Optional)</label>
+        <input type="password" id="api-token-input" placeholder="Bearer eyJhbGci..." />
+
+        <div class="toggle-group" style="margin-top: 14px;">
+          <div>
+            <strong>Fail-Safe Defense Mode</strong>
+            <p class="setting-desc">Blocks unverified URLs/files if SentinelKey backend is offline.</p>
+          </div>
+          <input type="checkbox" id="failsafe-toggle" checked />
+        </div>
+
+        <button id="save-settings-btn" class="btn btn-primary" style="margin-top: 16px; width: 100%;">
+          Save Settings
+        </button>
+        <div id="settings-status" class="save-feedback"></div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span>Zero-Trust Client Defense v1.0.0</span>
+      <a href="http://localhost:5173" target="_blank">Open Dashboard ↗</a>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
