@@ -7,6 +7,9 @@ import type {
   ICheckoutSessionResponse,
   IVerifyPaymentResponse,
   ApiResponse,
+  IClientDomain,
+  IRegisterDomainRequest,
+  IDomainProbeResult,
 } from '@sentinelkey/shared-types';
 
 let accessToken: string | null = null;
@@ -35,6 +38,41 @@ export function getErrorMessage(err: unknown, fallback = 'An unexpected error oc
   return err instanceof Error ? err.message : fallback;
 }
 
+// Single-flight refresh: concurrent 401s and the auth bootstrap must share ONE
+// refresh request. Sending the same refresh token twice in parallel triggers the
+// server's reuse detection, which invalidates ALL sessions for the user.
+let refreshInFlight: Promise<boolean> | null = null;
+
+export async function refreshAccessToken(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const refreshRes = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!refreshRes.ok) return false;
+      const refreshData = (await refreshRes.json()) as ApiResponse<IAuthResponse>;
+      if (!refreshData.data?.accessToken) return false;
+      setAccessToken(refreshData.data.accessToken);
+      if (refreshData.data.refreshToken) {
+        setStoredRefreshToken(refreshData.data.refreshToken);
+      }
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
 async function request<T>(
   url: string,
   options: RequestInit = {},
@@ -54,31 +92,12 @@ async function request<T>(
 
   // Handle automatic silent refresh on 401
   if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh')) {
-    const refreshToken = getStoredRefreshToken();
-    if (refreshToken) {
-      try {
-        const refreshRes = await fetch('/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const refreshData = (await refreshRes.json()) as ApiResponse<IAuthResponse>;
-          if (refreshData.data?.accessToken) {
-            setAccessToken(refreshData.data.accessToken);
-            if (refreshData.data.refreshToken) {
-              setStoredRefreshToken(refreshData.data.refreshToken);
-            }
-            return request<T>(url, options, true);
-          }
-        }
-      } catch {
-        // Refresh failed, clear session
-        setAccessToken(null);
-        setStoredRefreshToken(null);
-      }
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return request<T>(url, options, true);
     }
+    setAccessToken(null);
+    setStoredRefreshToken(null);
   }
 
   const data = await response.json();
@@ -143,10 +162,13 @@ export const api = {
     return request<ISubscription>('/billing/subscription');
   },
 
-  async checkout(planId: string): Promise<ICheckoutSessionResponse> {
+  async checkout(
+    planId: string,
+    details?: { phone?: string; customerName?: string },
+  ): Promise<ICheckoutSessionResponse> {
     return request<ICheckoutSessionResponse>('/billing/checkout', {
       method: 'POST',
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify({ planId, ...details }),
     });
   },
 
@@ -162,5 +184,39 @@ export const api = {
 
   async getInvoices(): Promise<IInvoice[]> {
     return request<IInvoice[]>('/billing/invoices');
+  },
+
+  // Client Domains & Application Registration
+  async listDomains(): Promise<IClientDomain[]> {
+    return request<IClientDomain[]>('/domains');
+  },
+
+  async registerDomain(data: IRegisterDomainRequest): Promise<IClientDomain> {
+    return request<IClientDomain>('/domains', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteDomain(id: string): Promise<{ deleted: boolean }> {
+    return request<{ deleted: boolean }>(`/domains/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async probeDomain(id: string): Promise<IDomainProbeResult> {
+    return request<IDomainProbeResult>(`/domains/${id}/ping`, {
+      method: 'POST',
+    });
+  },
+
+  async simulateDomainTraffic(
+    id: string,
+    isThreat = false,
+  ): Promise<{ success: boolean; domainName: string; domainUrl: string }> {
+    return request<{ success: boolean; domainName: string; domainUrl: string }>(`/domains/${id}/simulate`, {
+      method: 'POST',
+      body: JSON.stringify({ isThreat }),
+    });
   },
 };

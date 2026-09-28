@@ -82,4 +82,12 @@ export type {
   IVerifyPaymentResponse,
 } from './billing.js';
 
-
+// Client Domain types
+export type {
+  DomainEnvironment,
+  DomainHealthStatus,
+  IClientDomain,
+  IRegisterDomainRequest,
+  IDomainProbeResult,
+  IDomainTelemetryPayload,
+} from './domain.js';

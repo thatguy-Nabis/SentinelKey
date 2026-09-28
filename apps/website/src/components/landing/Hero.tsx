@@ -1,17 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Box, Shield, Layers, ArrowRight } from 'lucide-react';
-
-const FLOATING_CHARS = [
-  { char: 'E', top: '15%', left: '12%', delay: '0s' },
-  { char: 'R', top: '22%', left: '38%', delay: '1s' },
-  { char: 'X', top: '18%', right: '14%', delay: '2s' },
-  { char: 'D', top: '35%', right: '28%', delay: '1.5s' },
-  { char: 'K', top: '30%', left: '22%', delay: '0.5s' },
-  { char: '0', top: '12%', right: '35%', delay: '2.5s' },
-  { char: '1', top: '42%', left: '8%', delay: '3s' },
-  { char: 'T', top: '48%', right: '10%', delay: '1.8s' },
-];
+import { ShieldCheck, Activity, Lock, ArrowRight, Shield } from 'lucide-react';
 
 export const Hero: React.FC = () => {
   return (
@@ -26,34 +15,61 @@ export const Hero: React.FC = () => {
         textAlign: 'center',
       }}
     >
-      {/* Floating alphanumeric characters background from Image 1 */}
-      {FLOATING_CHARS.map((item, idx) => (
-        <span
-          key={idx}
-          className="animate-glyph"
+      {/* Video background */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+        }}
+      >
+        <source src="/hero-bg.mp4" type="video/mp4" />
+      </video>
+
+      {/* Dark overlay for text readability */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(10, 13, 20, 0.65)',
+          zIndex: 1,
+        }}
+      />
+
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 1.5rem', position: 'relative', zIndex: 10 }}>
+        {/* Badge */}
+        <div
           style={{
-            position: 'absolute',
-            top: item.top,
-            left: item.left,
-            right: item.right,
-            fontSize: '1.75rem',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
-            color: '#64748B',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            animationDelay: item.delay,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: 'rgba(29, 99, 237, 0.15)',
+            border: '1px solid rgba(29, 99, 237, 0.35)',
+            padding: '0.35rem 1rem',
+            borderRadius: '999px',
+            fontSize: '0.85rem',
+            color: '#93C5FD',
+            marginBottom: '1.5rem',
+            fontWeight: 500,
           }}
         >
-          {item.char}
-        </span>
-      ))}
+          <Shield size={14} color="#60A5FA" />
+          <span>Unified Enterprise Security Stack</span>
+        </div>
 
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 1.5rem', position: 'relative', zIndex: 10 }}>
         {/* Title */}
         <h1
           style={{
-            fontSize: 'clamp(2.5rem, 5vw, 3.75rem)',
+            fontSize: 'clamp(2.4rem, 5vw, 3.75rem)',
             fontWeight: 800,
             lineHeight: 1.15,
             letterSpacing: '-0.03em',
@@ -61,7 +77,7 @@ export const Hero: React.FC = () => {
             color: '#FFFFFF',
           }}
         >
-          Trust SentinelKey<br />for the Agents You Don’t
+          Authentication, Encryption, Intrusion Detection & Compliance in One Stack
         </h1>
 
         {/* Subtitle */}
@@ -70,12 +86,11 @@ export const Hero: React.FC = () => {
             fontSize: '1.15rem',
             color: '#94A3B8',
             lineHeight: 1.6,
-            maxWidth: '680px',
+            maxWidth: '720px',
             margin: '0 auto 2.5rem',
           }}
         >
-          SentinelKey securely contains autonomous agents and critical workloads so you
-          can confidently build, ship, and run on trust.
+          Zero third-party SaaS dependencies. Secure your applications with in-repo RFC 6238 TOTP, AES-256-GCM file encryption, mathematical geo-velocity heuristics, and Isolation Forest ML threat detection.
         </p>
 
         {/* Action Buttons */}
@@ -93,7 +108,7 @@ export const Hero: React.FC = () => {
               transition: 'background-color 0.2s',
             }}
           >
-            Get started
+            Get started free
           </Link>
           <a
             href="#features"
@@ -108,7 +123,7 @@ export const Hero: React.FC = () => {
               transition: 'border-color 0.2s, background-color 0.2s',
             }}
           >
-            Learn more
+            Explore features
           </a>
         </div>
       </div>
@@ -127,28 +142,29 @@ export const Hero: React.FC = () => {
         }}
       >
         {/* Spotlight Card 1 */}
-        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left' }}>
+        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left', backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Sentinel Sandboxes</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Auth, RBAC & Adaptive MFA</h3>
             <div
               style={{
                 width: '42px',
                 height: '42px',
                 borderRadius: '8px',
-                backgroundColor: '#111625',
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #DBEAFE',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Box size={22} color="#60A5FA" />
+              <ShieldCheck size={22} color="#1D63ED" />
             </div>
           </div>
           <p style={{ fontSize: '0.925rem', color: '#475569', lineHeight: 1.6, marginBottom: '2rem', minHeight: '68px' }}>
-            MicroVM isolation for every agent session, rootfs, virtual network and filesystem shield at the runtime.
+            In-repo RFC 6238 TOTP, AES-256-GCM encrypted secrets, 8 single-use recovery codes, JWT token rotation, and 3-tier RBAC.
           </p>
-          <a
-            href="#features"
+          <Link
+            to="/products"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -158,33 +174,34 @@ export const Hero: React.FC = () => {
               color: 'var(--landing-hero-cta)',
             }}
           >
-            Need more about our approach? <ArrowRight size={14} />
-          </a>
+            Learn about Auth & MFA <ArrowRight size={14} />
+          </Link>
         </div>
 
         {/* Spotlight Card 2 */}
-        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left' }}>
+        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left', backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Sentinel AI Governance</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Rules & ML Intrusion Detection</h3>
             <div
               style={{
                 width: '42px',
                 height: '42px',
                 borderRadius: '8px',
-                backgroundColor: '#111625',
+                backgroundColor: '#F5F3FF',
+                border: '1px solid #EDE9FE',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Shield size={22} color="#60A5FA" />
+              <Activity size={22} color="#8B5CF6" />
             </div>
           </div>
           <p style={{ fontSize: '0.925rem', color: '#475569', lineHeight: 1.6, marginBottom: '2rem', minHeight: '68px' }}>
-            One console for sanction access, privacy control, bound audit logs, flow pan-workstation setups.
+            Haversine geo-velocity impossible travel heuristics (&gt;800 km/h) combined with Python Isolation Forest ML anomaly scoring.
           </p>
-          <a
-            href="#features"
+          <Link
+            to="/products"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -194,33 +211,34 @@ export const Hero: React.FC = () => {
               color: 'var(--landing-hero-cta)',
             }}
           >
-            Overview for agent governance <ArrowRight size={14} />
-          </a>
+            Explore Intrusion Detection <ArrowRight size={14} />
+          </Link>
         </div>
 
         {/* Spotlight Card 3 */}
-        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left' }}>
+        <div className="spotlight-card" style={{ padding: '2rem 1.75rem', textAlign: 'left', backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Sentinel Hardened Images</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>Field & SKF1 File Encryption</h3>
             <div
               style={{
                 width: '42px',
                 height: '42px',
                 borderRadius: '8px',
-                backgroundColor: '#111625',
+                backgroundColor: '#ECFDF5',
+                border: '1px solid #D1FAE5',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Layers size={22} color="#60A5FA" />
+              <Lock size={22} color="#10B981" />
             </div>
           </div>
           <p style={{ fontSize: '0.925rem', color: '#475569', lineHeight: 1.6, marginBottom: '2rem', minHeight: '68px' }}>
-            Minimal, signed, continuously patched images and FIPS runtimes to shield your supply-chain by default.
+            AES-256-GCM field encryption, SKF1 binary file envelopes, HKDF domain separation, and zero-downtime key rotation.
           </p>
-          <a
-            href="#features"
+          <Link
+            to="/products"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -230,8 +248,8 @@ export const Hero: React.FC = () => {
               color: 'var(--landing-hero-cta)',
             }}
           >
-            Security-hardened images matter <ArrowRight size={14} />
-          </a>
+            Review Encryption Specs <ArrowRight size={14} />
+          </Link>
         </div>
       </div>
     </section>

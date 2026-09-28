@@ -14,20 +14,20 @@ A public-facing **SentinelKey website** that:
 3. After auth, leads to a **hub page** styled like Docker Hub: a left **sidebar** + a main panel of **app-service cards**.
 4. Adds a **billing / payment** service with a subscription structure, paid via **Khalti**.
 
-The website is a *marketing + hub + billing* layer. It does **not** replace `apps/dashboard` (the Security Operations Console) — it links into it.
+The website is a _marketing + hub + billing_ layer. It does **not** replace `apps/dashboard` (the Security Operations Console) — it links into it.
 
 ## 2. Key decisions
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Where the website lives | New app `apps/website` (Vite + React 18 + TS) | Keeps marketing/hub/billing separate from the SOC console; matches monorepo pattern |
-| Routing | `react-router-dom` v6 | Landing/auth/hub/billing are real URLs, not tab state |
-| Auth | **Reuse** existing `/auth/*` endpoints | No new auth logic — login/register/refresh already exist + are tested |
-| Payment gateway | **Khalti ePayment v2** (`a.khalti.com/api/v2`), with a **mock provider** fallback in dev | Khalti is peripheral delivery (allowed). Mock keeps dev zero-dependency (no keys/Docker). Currency is NPR; amounts in paisa |
-| Plans | Static plan definitions in code + subscription records in DB | Plans gate features in code; rarely change. Subscription state (per-user) lives in Mongo |
-| Shared types | Add billing types to `@sentinelkey/shared-types` | Consistency with existing auth/alert types |
-| Design system | **Docker-style light theme with purple accents** (§4) | Mirrors the official docker.com layout & structure; Docker blue → purple. No new UI framework |
-| Design tooling | Spec authored here → passed to **Stitch AI** for visual design first | Design-first: lock the look, then implement |
+| Decision                | Choice                                                                                   | Rationale                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Where the website lives | New app `apps/website` (Vite + React 18 + TS)                                            | Keeps marketing/hub/billing separate from the SOC console; matches monorepo pattern                                         |
+| Routing                 | `react-router-dom` v6                                                                    | Landing/auth/hub/billing are real URLs, not tab state                                                                       |
+| Auth                    | **Reuse** existing `/auth/*` endpoints                                                   | No new auth logic — login/register/refresh already exist + are tested                                                       |
+| Payment gateway         | **Khalti ePayment v2** (`a.khalti.com/api/v2`), with a **mock provider** fallback in dev | Khalti is peripheral delivery (allowed). Mock keeps dev zero-dependency (no keys/Docker). Currency is NPR; amounts in paisa |
+| Plans                   | Static plan definitions in code + subscription records in DB                             | Plans gate features in code; rarely change. Subscription state (per-user) lives in Mongo                                    |
+| Shared types            | Add billing types to `@sentinelkey/shared-types`                                         | Consistency with existing auth/alert types                                                                                  |
+| Design system           | **Docker-style light theme with purple accents** (§4)                                    | Mirrors the official docker.com layout & structure; Docker blue → purple. No new UI framework                               |
+| Design tooling          | Spec authored here → passed to **Stitch AI** for visual design first                     | Design-first: lock the look, then implement                                                                                 |
 
 ## 3. Architecture
 
@@ -76,52 +76,56 @@ sequenceDiagram
 ## 4. Design System & UI Specification (Exact Reference Implementation)
 
 > This section reflects the **exact structure and colors** from the provided reference images:
+>
 > - **Image 1 (Landing Page `/`):** Docker-style hybrid theme — pitch-black hero with alphanumeric particle scatter, luminous spotlight cards, light product/terminal comparison and 2×2 runtime showcase with 3D wireframe visuals, enterprise stats, product preview, and deep dark footer.
 > - **Image 2 (User Hub `/app`):** Sleek dark developer console — obsidian/plum background (`#0D0B18`), purple accent branding, gradient welcome banner, full 10-item security/workspace sidebar, exact 6 SentinelKey product cards, 4 resources cards, and live hardware attestation daemon dock.
 
 ### 4.1 Palette & Color Tokens
 
 #### Landing Page Theme (Image 1)
-| Token | Value | Description / Usage |
-|---|---|---|
-| `--landing-hero-bg` | `#0A0D14` | Pitch black/navy hero background |
-| `--landing-hero-cta` | `#1D63ED` | Docker vibrant blue primary button (hover `#174FCE`) |
-| `--landing-spotlight-bg` | `#FFFFFF` | Luminous white cards with gradient glow borders |
-| `--landing-spotlight-border`| `rgba(37, 99, 235, 0.35)` | Blue glowing border on spotlight cards |
-| `--landing-body-bg` | `#FFFFFF` | Light background for body sections |
-| `--landing-section-alt` | `#F8F9FC` | Off-white section background |
-| `--landing-text-head` | `#0F172A` | Deep dark slate headings |
-| `--landing-text-body` | `#475569` | Neutral slate body text |
-| `--landing-terminal-bg` | `#111625` | Dark macOS terminal window background |
-| `--landing-footer-bg` | `#080C14` | Pitch black/navy enterprise footer |
+
+| Token                        | Value                     | Description / Usage                                  |
+| ---------------------------- | ------------------------- | ---------------------------------------------------- |
+| `--landing-hero-bg`          | `#0A0D14`                 | Pitch black/navy hero background                     |
+| `--landing-hero-cta`         | `#1D63ED`                 | Docker vibrant blue primary button (hover `#174FCE`) |
+| `--landing-spotlight-bg`     | `#FFFFFF`                 | Luminous white cards with gradient glow borders      |
+| `--landing-spotlight-border` | `rgba(37, 99, 235, 0.35)` | Blue glowing border on spotlight cards               |
+| `--landing-body-bg`          | `#FFFFFF`                 | Light background for body sections                   |
+| `--landing-section-alt`      | `#F8F9FC`                 | Off-white section background                         |
+| `--landing-text-head`        | `#0F172A`                 | Deep dark slate headings                             |
+| `--landing-text-body`        | `#475569`                 | Neutral slate body text                              |
+| `--landing-terminal-bg`      | `#111625`                 | Dark macOS terminal window background                |
+| `--landing-footer-bg`        | `#080C14`                 | Pitch black/navy enterprise footer                   |
 
 #### Hub Console Theme (Image 2)
-| Token | Value | Description / Usage |
-|---|---|---|
-| `--hub-bg-app` | `#0D0B18` | Deep obsidian/plum console background |
-| `--hub-sidebar-bg` | `#131021` | Dark violet sidebar background |
-| `--hub-card-bg` | `#171328` | Dark card surface |
-| `--hub-card-border` | `#261E3D` | 1px border for product and resource cards |
-| `--hub-card-hover` | `#1E1834` | Card surface on hover |
-| `--hub-purple-primary` | `#6B4DE6` | SentinelKey primary purple (buttons, links, active bar) |
-| `--hub-purple-hover` | `#7C3AED` | Bright purple hover / button active |
-| `--hub-purple-light` | `#A78BFA` | Lavender accent text and tags |
-| `--hub-purple-gradient` | `linear-gradient(135deg, #4C1D95 0%, #311368 60%, #1E0E45 100%)` | Welcome banner background |
-| `--hub-status-emerald` | `#10B981` | Green active daemon indicator and scout badge |
-| `--hub-text-primary` | `#F8FAFC` | Bright white text for headers |
-| `--hub-text-secondary` | `#94A3B8` | Muted slate text for descriptions |
-| `--hub-text-muted` | `#64748B` | Category subtitles (e.g. "INNOVATE WITH") |
-| `--hub-sidebar-active` | `rgba(107, 77, 230, 0.22)` | Active sidebar item fill |
+
+| Token                   | Value                                                            | Description / Usage                                     |
+| ----------------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| `--hub-bg-app`          | `#0D0B18`                                                        | Deep obsidian/plum console background                   |
+| `--hub-sidebar-bg`      | `#131021`                                                        | Dark violet sidebar background                          |
+| `--hub-card-bg`         | `#171328`                                                        | Dark card surface                                       |
+| `--hub-card-border`     | `#261E3D`                                                        | 1px border for product and resource cards               |
+| `--hub-card-hover`      | `#1E1834`                                                        | Card surface on hover                                   |
+| `--hub-purple-primary`  | `#6B4DE6`                                                        | SentinelKey primary purple (buttons, links, active bar) |
+| `--hub-purple-hover`    | `#7C3AED`                                                        | Bright purple hover / button active                     |
+| `--hub-purple-light`    | `#A78BFA`                                                        | Lavender accent text and tags                           |
+| `--hub-purple-gradient` | `linear-gradient(135deg, #4C1D95 0%, #311368 60%, #1E0E45 100%)` | Welcome banner background                               |
+| `--hub-status-emerald`  | `#10B981`                                                        | Green active daemon indicator and scout badge           |
+| `--hub-text-primary`    | `#F8FAFC`                                                        | Bright white text for headers                           |
+| `--hub-text-secondary`  | `#94A3B8`                                                        | Muted slate text for descriptions                       |
+| `--hub-text-muted`      | `#64748B`                                                        | Category subtitles (e.g. "INNOVATE WITH")               |
+| `--hub-sidebar-active`  | `rgba(107, 77, 230, 0.22)`                                       | Active sidebar item fill                                |
 
 ---
 
 ### 4.2 Page Structure Specs (Exact match to images)
 
 #### (a) Landing Page `/` (Image 1 Structure)
+
 1. **Top Navbar:**
    - Dark background (`#0A0D14`), bottom hairline border.
-   - Left: Logo icon + Wordmark + Nav dropdown links: *Products*, *Support*, *Pricing*, *Blog*, *Docs*.
-   - Right: Search trigger icon `(Q)`, ghost link *Sign In*, solid CTA *Get started*.
+   - Left: Logo icon + Wordmark + Nav dropdown links: _Products_, _Support_, _Pricing_, _Blog_, _Docs_.
+   - Right: Search trigger icon `(Q)`, ghost link _Sign In_, solid CTA _Get started_.
 2. **Hero:**
    - Dark `#0A0D14` background with scattered floating monospace letters (`E`, `R`, `X`, `D`, `K`).
    - Title: "Trust SentinelKey for the Agents You Don't"
@@ -134,17 +138,17 @@ sequenceDiagram
 4. **Partner / Trust Logo Strip:**
    - Grayscale partner logo band on white.
 5. **"Invisible to developers. Total control for security." (Dual Comparison):**
-   - Left macOS terminal: *Developer view: Your laptop. One command.* (`sentinel run...`).
-   - Right dark console card: *Governance console: Your console. Fourteen checks.* (live check badges, 14/14 checks pass).
+   - Left macOS terminal: _Developer view: Your laptop. One command._ (`sentinel run...`).
+   - Right dark console card: _Governance console: Your console. Fourteen checks._ (live check badges, 14/14 checks pass).
 6. **"The runtime under every agent" (2×2 Runtime Grid):**
-   - Card 1: *Isolation you can trust* (with terminal snapshot).
-   - Card 2: *Start local. Scale anywhere.* (with execution speed metrics `Ready in 100ms`).
-   - Card 3: *Nothing to fix and replace* (with 3D isometric blue wireframe cube).
-   - Card 4: *No lock-in. Ever.* (with 3D wireframe sphere).
+   - Card 1: _Isolation you can trust_ (with terminal snapshot).
+   - Card 2: _Start local. Scale anywhere._ (with execution speed metrics `Ready in 100ms`).
+   - Card 3: _Nothing to fix and replace_ (with 3D isometric blue wireframe cube).
+   - Card 4: _No lock-in. Ever._ (with 3D wireframe sphere).
 7. **Value Pillars (3 Columns):**
-   - *Lower cost through leaked safe-entry*
-   - *Ship faster. Without the breach.*
-   - *Compliant by default.*
+   - _Lower cost through leaked safe-entry_
+   - _Ship faster. Without the breach._
+   - _Compliant by default._
 8. **Enterprise Numbers / Stats:**
    - `91%` Fortune 100 benchmark, `20B+` telemetry events, `20M+` secured agent tasks.
 9. **SentinelKey Desktop Showcase:**
@@ -152,14 +156,15 @@ sequenceDiagram
    - Button: `Download SentinelKey Desktop`.
    - Full desktop console UI preview.
 10. **"Build better, together":**
-    - 4 pills: *SentinelKey Desktop*, *Sentinel AI Governance*, *Sentinel Hardened Baselines*, *Sentinel Scout*.
+    - 4 pills: _SentinelKey Desktop_, _Sentinel AI Governance_, _Sentinel Hardened Baselines_, _Sentinel Scout_.
 11. **Dark Enterprise Footer (`#080C14`):**
-    - Columns: *Products*, *Features*, *Developers*, *Pricing*, *Company*, *Languages*.
+    - Columns: _Products_, _Features_, _Developers_, _Pricing_, _Company_, _Languages_.
     - Copyright © 2026 SentinelKey Inc. + Terms, Privacy, Legal.
 
 ---
 
 #### (b) User Hub Page `/app` (Image 2 Structure)
+
 1. **Top Header Bar:**
    - SentinelKey shield/keyhole logo + "SentinelKey" wordmark + "Sentinel Key" active workspace pill.
    - Right: Help icon `(?)`, Notification bell with unread badge, Theme toggle (moon/sun), User avatar.
@@ -241,12 +246,12 @@ sequenceDiagram
 
 ### 4.10 Responsive breakpoints
 
-| Breakpoint | Behavior |
-|---|---|
-| ≥ 1200px | 4-column service grid; hero two-column |
-| 900–1199px | 3-column grid |
-| 640–899px | 2-column grid; hero stacks; sidebar collapses to top bar |
-| < 640px | 1-column; nav becomes hamburger; pricing stacks |
+| Breakpoint | Behavior                                                 |
+| ---------- | -------------------------------------------------------- |
+| ≥ 1200px   | 4-column service grid; hero two-column                   |
+| 900–1199px | 3-column grid                                            |
+| 640–899px  | 2-column grid; hero stacks; sidebar collapses to top bar |
+| < 640px    | 1-column; nav becomes hamburger; pricing stacks          |
 
 ### 4.11 Accessibility
 
@@ -289,27 +294,27 @@ apps/website/
 
 ### Routes
 
-| Path | Access | Content |
-|---|---|---|
-| `/` | public | Landing (hero, features, pricing) |
-| `/login` | public | Login form → POST `/auth/login` |
-| `/signup` | public | Signup form → POST `/auth/register` |
-| `/app` | protected | Hub: sidebar + service cards |
-| `/app/billing` | protected | Plans, current subscription, invoices |
-| `/app/settings` | protected | Profile + link to enable MFA |
+| Path            | Access    | Content                               |
+| --------------- | --------- | ------------------------------------- |
+| `/`             | public    | Landing (hero, features, pricing)     |
+| `/login`        | public    | Login form → POST `/auth/login`       |
+| `/signup`       | public    | Signup form → POST `/auth/register`   |
+| `/app`          | protected | Hub: sidebar + service cards          |
+| `/app/billing`  | protected | Plans, current subscription, invoices |
+| `/app/settings` | protected | Profile + link to enable MFA          |
 
 ### Service cards (hub main panel)
 
 Docker-Hub-style grid of the stack's services:
 
-| Card | Action |
-|---|---|
-| Security Operations Console | Open `apps/dashboard` (new tab) |
-| ML Anomaly Detection | Info card + status (links to `ml-service`) |
-| Browser Extension | Download / install instructions |
-| SDK (`@sentinelkey/security-stack-sdk`) | Docs / npm info |
-| Billing & Subscription | Navigate to `/app/billing` |
-| Account Settings | Navigate to `/app/settings` |
+| Card                                    | Action                                     |
+| --------------------------------------- | ------------------------------------------ |
+| Security Operations Console             | Open `apps/dashboard` (new tab)            |
+| ML Anomaly Detection                    | Info card + status (links to `ml-service`) |
+| Browser Extension                       | Download / install instructions            |
+| SDK (`@sentinelkey/security-stack-sdk`) | Docs / npm info                            |
+| Billing & Subscription                  | Navigate to `/app/billing`                 |
+| Account Settings                        | Navigate to `/app/settings`                |
 
 ## 6. Backend — billing module in `apps/api`
 
@@ -332,14 +337,14 @@ apps/api/src/
 
 ### Endpoints
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/billing/plans` | none | Plan catalog |
-| GET | `/billing/subscription` | Bearer | Current user's subscription (auto-creates "free" default) |
-| POST | `/billing/checkout` | Bearer | Body `{ planId }` → Khalti initiate (or mock) → `{ url }` |
-| GET | `/billing/verify?pidx=…` | Bearer | Khalti lookup → finalize subscription when `Completed` |
-| POST | `/billing/cancel` | Bearer | Cancel subscription (Khalti or mock) |
-| GET | `/billing/invoices` | Bearer | Invoice history |
+| Method | Path                     | Auth   | Description                                               |
+| ------ | ------------------------ | ------ | --------------------------------------------------------- |
+| GET    | `/billing/plans`         | none   | Plan catalog                                              |
+| GET    | `/billing/subscription`  | Bearer | Current user's subscription (auto-creates "free" default) |
+| POST   | `/billing/checkout`      | Bearer | Body `{ planId }` → Khalti initiate (or mock) → `{ url }` |
+| GET    | `/billing/verify?pidx=…` | Bearer | Khalti lookup → finalize subscription when `Completed`    |
+| POST   | `/billing/cancel`        | Bearer | Cancel subscription (Khalti or mock)                      |
+| GET    | `/billing/invoices`      | Bearer | Invoice history                                           |
 
 > Note: Khalti ePayment v2 has **no server webhook by default** — status is resolved via the
 > **lookup** call on `return_url` redirect (and a short polling retry for `Pending`). If a webhook is
@@ -347,11 +352,11 @@ apps/api/src/
 
 ### Pricing structure (NPR)
 
-| Plan | Price | Highlights |
-|---|---|---|
-| **Free** | NPR 0 | Self-hosted core, 1 user, community support |
-| **Pro** | NPR 2,499/mo | ML anomaly detection, field/file encryption, priority alerts |
-| **Enterprise** | Custom | SSO, dedicated support, unlimited users |
+| Plan           | Price        | Highlights                                                   |
+| -------------- | ------------ | ------------------------------------------------------------ |
+| **Free**       | NPR 0        | Self-hosted core, 1 user, community support                  |
+| **Pro**        | NPR 2,499/mo | ML anomaly detection, field/file encryption, priority alerts |
+| **Enterprise** | Custom       | SSO, dedicated support, unlimited users                      |
 
 Prices are **display-only** in this iteration; `feature-gate.ts` is deferred (§10). Khalti amounts are
 sent in **paisa** (`NPR × 100`).
@@ -387,7 +392,9 @@ interface PaymentProvider {
     customer: { name: string; email: string };
     returnUrl: string;
   }): Promise<{ pidx: string; url: string }>;
-  verifyPayment(pidx: string): Promise<{ status: PaymentStatus; transactionId?: string; amountPaisa?: number }>;
+  verifyPayment(
+    pidx: string,
+  ): Promise<{ status: PaymentStatus; transactionId?: string; amountPaisa?: number }>;
   cancelSubscription(subscriptionId: string): Promise<void>;
 }
 ```
@@ -402,6 +409,7 @@ so another gateway can be swapped in later.
 ## 7. Shared types (`packages/shared-types`)
 
 Add `src/billing.ts`:
+
 - `BillingPlanId = 'free' | 'pro' | 'enterprise'`
 - `IBillingPlan` (id, name, priceNpr, currency, interval, features, highlighted?)
 - `ISubscription` (planId, status, currentPeriodEnd, cancelAtPeriodEnd)
@@ -449,6 +457,6 @@ WEBSITE_URL=http://localhost:5174   # return_url / website_url for Khalti checko
 ## 12. Open questions (defaults chosen, confirm to proceed)
 
 1. **Payment gateway** — Khalti ePayment v2 with dev mock fallback (as requested). Confirm test keys will be added via env, never committed.
-2. **Site vs. dashboard relationship** — website is a new app that *links* to the SOC dashboard (recommended). Alternative: fold the hub into the existing dashboard.
+2. **Site vs. dashboard relationship** — website is a new app that _links_ to the SOC dashboard (recommended). Alternative: fold the hub into the existing dashboard.
 3. **Pricing numbers** — Free / NPR 2,499 Pro / custom Enterprise (adjust freely; they're config in one file).
 4. **Design handoff** — §4 is ready to paste into Stitch AI. Confirm before I generate the visual design and start coding.

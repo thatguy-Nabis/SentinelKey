@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { IUserProfile } from '@sentinelkey/shared-types';
-import { api, getStoredRefreshToken, setAccessToken, setStoredRefreshToken } from '../services/api.js';
+import { api, refreshAccessToken, setAccessToken, setStoredRefreshToken } from '../services/api.js';
 
 interface AuthContextType {
   user: IUserProfile | null;
@@ -30,36 +30,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const refreshToken = getStoredRefreshToken();
-      if (!refreshToken) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const refreshRes = await fetch('/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const data = await refreshRes.json();
-          if (data.data?.accessToken) {
-            setAccessToken(data.data.accessToken);
-            if (data.data.refreshToken) {
-              setStoredRefreshToken(data.data.refreshToken);
-            }
-            await refreshUser();
-          }
-        } else {
-          setStoredRefreshToken(null);
-        }
-      } catch {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        await refreshUser();
+      } else {
+        setAccessToken(null);
         setStoredRefreshToken(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     initAuth();

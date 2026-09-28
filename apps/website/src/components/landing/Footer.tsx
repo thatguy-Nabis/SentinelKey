@@ -28,12 +28,12 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ color: '#F8FAFC', fontWeight: 600, marginBottom: '1.25rem', fontSize: '0.9rem' }}>Products</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Product Overview</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>SentinelKey Desktop</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Sentinel Scout</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Hardened Images</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Sentinel Sandboxes</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>AI Governance</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Product Overview</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Auth & RBAC</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Adaptive MFA (TOTP)</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Intrusion Detection</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>ML Anomaly Engine</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>SKF1 Encryption</Link></li>
             </ul>
           </div>
 
@@ -41,12 +41,12 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ color: '#F8FAFC', fontWeight: 600, marginBottom: '1.25rem', fontSize: '0.9rem' }}>Features</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>Automated Root & Run-Time</a></li>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>CIS Benchmarks</a></li>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>Container Runtime</a></li>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>Enclave Attestation</a></li>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>Open Source Integrity</a></li>
-              <li><a href="#features" style={{ color: '#94A3B8' }}>Secure Supply Chain</a></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Threat Classifiers</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Haversine Geo-Velocity</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Shannon Entropy Analysis</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Chrome MV3 Extension</Link></li>
+              <li><Link to="/pricing" style={{ color: '#94A3B8' }}>Khalti ePayment</Link></li>
+              <li><Link to="/docs" style={{ color: '#94A3B8' }}>REST API Reference</Link></li>
             </ul>
           </div>
 
@@ -54,12 +54,12 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ color: '#F8FAFC', fontWeight: 600, marginBottom: '1.25rem', fontSize: '0.9rem' }}>Developers</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Documentation</Link></li>
+              <li><Link to="/docs" style={{ color: '#94A3B8' }}>Documentation</Link></li>
               <li><Link to="/signup" style={{ color: '#94A3B8' }}>Getting Started</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Training Paths</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Telemetry SDK</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>Community Forums</Link></li>
-              <li><Link to="/app" style={{ color: '#94A3B8' }}>CLI Reference</Link></li>
+              <li><Link to="/docs" style={{ color: '#94A3B8' }}>Training Paths</Link></li>
+              <li><Link to="/docs" style={{ color: '#94A3B8' }}>Telemetry SDK</Link></li>
+              <li><Link to="/support" style={{ color: '#94A3B8' }}>Community Forums</Link></li>
+              <li><Link to="/docs" style={{ color: '#94A3B8' }}>CLI Reference</Link></li>
             </ul>
           </div>
 
@@ -67,11 +67,11 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ color: '#F8FAFC', fontWeight: 600, marginBottom: '1.25rem', fontSize: '0.9rem' }}>Pricing</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <li><a href="#pricing" style={{ color: '#94A3B8' }}>Personal / Free</a></li>
-              <li><a href="#pricing" style={{ color: '#94A3B8' }}>Pro (NPR 2,499)</a></li>
-              <li><a href="#pricing" style={{ color: '#94A3B8' }}>Enterprise SLA</a></li>
+              <li><Link to="/pricing" style={{ color: '#94A3B8' }}>Personal / Free</Link></li>
+              <li><Link to="/pricing" style={{ color: '#94A3B8' }}>Pro (NPR 2,499)</Link></li>
+              <li><Link to="/pricing" style={{ color: '#94A3B8' }}>Enterprise SLA</Link></li>
               <li><Link to="/app/billing" style={{ color: '#94A3B8' }}>Khalti ePayment</Link></li>
-              <li><a href="#pricing" style={{ color: '#94A3B8' }}>Custom Invoicing</a></li>
+              <li><Link to="/pricing" style={{ color: '#94A3B8' }}>Custom Invoicing</Link></li>
             </ul>
           </div>
 
@@ -79,11 +79,11 @@ export const Footer: React.FC = () => {
           <div>
             <h4 style={{ color: '#F8FAFC', fontWeight: 600, marginBottom: '1.25rem', fontSize: '0.9rem' }}>Company</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <li><a href="#" style={{ color: '#94A3B8' }}>About SentinelKey</a></li>
-              <li><a href="#" style={{ color: '#94A3B8' }}>Trust & Compliance</a></li>
-              <li><a href="#" style={{ color: '#94A3B8' }}>Security Bulletins</a></li>
-              <li><a href="#" style={{ color: '#94A3B8' }}>Careers</a></li>
-              <li><a href="#" style={{ color: '#94A3B8' }}>Contact Support</a></li>
+              <li><Link to="/blog" style={{ color: '#94A3B8' }}>Security Research Blog</Link></li>
+              <li><Link to="/products" style={{ color: '#94A3B8' }}>Trust & Compliance</Link></li>
+              <li><Link to="/blog" style={{ color: '#94A3B8' }}>Security Bulletins</Link></li>
+              <li><Link to="/support" style={{ color: '#94A3B8' }}>System Status</Link></li>
+              <li><Link to="/support" style={{ color: '#94A3B8' }}>Contact Support</Link></li>
             </ul>
           </div>
 

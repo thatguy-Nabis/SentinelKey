@@ -26,7 +26,11 @@ export const env = {
   ML_ANOMALY_THRESHOLD: Number(process.env.ML_ANOMALY_THRESHOLD ?? 0.65),
   ML_ANOMALY_ENABLED: process.env.ML_ANOMALY_ENABLED !== 'false',
   KHALTI_SECRET_KEY: process.env.KHALTI_SECRET_KEY ?? '',
-  KHALTI_BASE_URL: process.env.KHALTI_BASE_URL ?? 'https://a.khalti.com/api/v2',
+  KHALTI_BASE_URL:
+    process.env.KHALTI_BASE_URL ??
+    (process.env.KHALTI_SECRET_KEY?.trim().replace(/^key\s+/i, '').startsWith('test_')
+      ? 'https://dev.khalti.com/api/v2'
+      : 'https://a.khalti.com/api/v2'),
   WEBSITE_URL: process.env.WEBSITE_URL ?? 'http://localhost:5174',
   NODE_ENV: process.env.NODE_ENV ?? 'development',
 } as const;

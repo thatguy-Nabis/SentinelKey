@@ -4,7 +4,11 @@ import type {
   IMfaSetupResponse,
   ISecurityEvent,
   IAlert,
+  ISubscription,
+  IBillingPlan,
   PaginatedResponse,
+  IClientDomain,
+  IDomainProbeResult,
 } from '@sentinelkey/shared-types';
 
 let accessToken: string | null = null;
@@ -34,6 +38,41 @@ export function getErrorMessage(err: unknown, fallback = 'An unexpected error oc
   return err instanceof Error ? err.message : fallback;
 }
 
+// Single-flight refresh: concurrent 401s and the auth bootstrap must share ONE
+// refresh request. Sending the same refresh token twice in parallel triggers the
+// server's reuse detection, which invalidates ALL sessions for the user.
+let refreshInFlight: Promise<boolean> | null = null;
+
+export async function refreshAccessToken(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const refreshRes = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!refreshRes.ok) return false;
+      const refreshData = await refreshRes.json();
+      if (!refreshData.data?.accessToken) return false;
+      setAccessToken(refreshData.data.accessToken);
+      if (refreshData.data.refreshToken) {
+        setStoredRefreshToken(refreshData.data.refreshToken);
+      }
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
 /**
  * Standard fetch wrapper with automatic bearer token attachment and refresh retry.
  */
@@ -56,29 +95,12 @@ async function request<T>(
 
   // Handle automatic silent refresh on 401
   if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh')) {
-    const refreshToken = getStoredRefreshToken();
-    if (refreshToken) {
-      try {
-        const refreshRes = await fetch('/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          if (refreshData.data?.accessToken) {
-            setAccessToken(refreshData.data.accessToken);
-            setStoredRefreshToken(refreshData.data.refreshToken);
-            return request<T>(url, options, true);
-          }
-        }
-      } catch {
-        // Refresh failed: clear storage
-        setAccessToken(null);
-        setStoredRefreshToken(null);
-      }
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return request<T>(url, options, true);
     }
+    setAccessToken(null);
+    setStoredRefreshToken(null);
   }
 
   const data = await response.json().catch(() => ({}));
@@ -219,4 +241,38 @@ export async function checkApiHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ================= BILLING & SUBSCRIPTION ENDPOINTS =================
+
+export async function fetchPlans(): Promise<IBillingPlan[]> {
+  const res = await request<{ data: IBillingPlan[] }>('/billing/plans');
+  return res.data;
+}
+
+export async function fetchSubscription(): Promise<ISubscription> {
+  const res = await request<{ data: ISubscription }>('/billing/subscription');
+  return res.data;
+}
+
+// ================= CLIENT DOMAINS ENDPOINTS =================
+
+export async function fetchDomains(): Promise<IClientDomain[]> {
+  const res = await request<{ data: IClientDomain[] }>('/domains');
+  return res.data;
+}
+
+export async function pingDomain(domainId: string): Promise<IDomainProbeResult> {
+  const res = await request<{ data: IDomainProbeResult }>(`/domains/${domainId}/ping`, {
+    method: 'POST',
+  });
+  return res.data;
+}
+
+export async function simulateDomainTraffic(domainId: string, isThreat = false): Promise<{ success: boolean }> {
+  const res = await request<{ data: { success: boolean } }>(`/domains/${domainId}/simulate`, {
+    method: 'POST',
+    body: JSON.stringify({ isThreat }),
+  });
+  return res.data;
 }

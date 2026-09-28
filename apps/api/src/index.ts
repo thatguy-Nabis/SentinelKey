@@ -12,6 +12,7 @@ import filesRoutes from './routes/files.routes.js';
 import classificationRoutes from './routes/classification.routes.js';
 import policiesRoutes from './routes/policies.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import clientDomainRoutes from './routes/client-domain.routes.js';
 
 // Validate env vars (throws in production if secrets are missing)
 validateEnv();
@@ -44,6 +45,9 @@ app.use('/policies', policiesRoutes);
 
 // Billing & Subscription routes (Khalti & Mock)
 app.use('/billing', billingRoutes);
+
+// Client Application & Domain routes
+app.use('/domains', clientDomainRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);

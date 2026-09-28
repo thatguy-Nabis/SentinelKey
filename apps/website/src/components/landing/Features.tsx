@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
-import { Shield, Copy, Check, Download, Box } from 'lucide-react';
+import { Shield, Copy, Check, Globe, Lock, Activity } from 'lucide-react';
 
 
 export const Features: React.FC = () => {
   const [copied, setCopied] = useState(false);
-  const [activePill, setActivePill] = useState(0);
 
   const copyCommand = () => {
-    navigator.clipboard.writeText('sentinel agent run --enclave sgx-04 my-agent');
+    navigator.clipboard.writeText('pnpm add @sentinelkey/security-stack-sdk');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const offerings = [
-    'SentinelKey Desktop',
-    'Sentinel AI Governance',
-    'Sentinel Hardened Baselines',
-    'Sentinel Scout',
-  ];
 
   return (
     <div id="features" style={{ backgroundColor: '#ffffff', paddingTop: '15rem' }}>
@@ -34,7 +26,7 @@ export const Features: React.FC = () => {
         }}
       >
         <p style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.12em', color: '#94A3B8', marginBottom: '2rem' }}>
-          TRUSTED BY DEVELOPERS AND SECURITY ENGINEERS WORLDWIDE
+          ENTERPRISE ARCHITECTURE DESIGNED FOR PRODUCTION RELIABILITY
         </p>
         <div
           style={{
@@ -43,18 +35,18 @@ export const Features: React.FC = () => {
             alignItems: 'center',
             gap: '3.5rem',
             flexWrap: 'wrap',
-            opacity: 0.65,
+            opacity: 0.75,
           }}
         >
-          {['ADOBE', 'DATADOG', 'CLOUDFLARE', 'RED HAT', 'MICROSOFT AZURE', 'GITHUB'].map((logo, idx) => (
+          {['NODE.JS & TYPESCRIPT', 'EXPRESS REST API', 'PYTHON FLASK & SCIKIT-LEARN', 'AES-256-GCM', 'MANIFEST V3 CHROME', 'KHALTI EPAYMENT'].map((logo, idx) => (
             <span
               key={idx}
               style={{
-                fontSize: '1.1rem',
+                fontSize: '0.95rem',
                 fontWeight: 800,
-                letterSpacing: '0.05em',
+                letterSpacing: '0.06em',
                 color: '#475569',
-                fontFamily: 'var(--font-sans)',
+                fontFamily: 'var(--font-mono)',
               }}
             >
               {logo}
@@ -63,11 +55,11 @@ export const Features: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. "Invisible to developers. Total control for security." (Dual Comparison) */}
+      {/* 2. Developer View vs Security Operations Console */}
       <section style={{ maxWidth: '1240px', margin: '6rem auto', padding: '0 1.5rem' }}>
         <div style={{ maxWidth: '780px', marginBottom: '3.5rem' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--landing-hero-cta)', marginBottom: '0.75rem', display: 'block' }}>
-            Introducing SentinelKey AI Governance
+            Unified Security Operations
           </span>
           <h2
             style={{
@@ -79,10 +71,10 @@ export const Features: React.FC = () => {
               marginBottom: '1.25rem',
             }}
           >
-            Invisible to developers.<br />Total control for security.
+            Zero SaaS dependencies.<br />Full-stack defense in one codebase.
           </h2>
           <p style={{ fontSize: '1.1rem', color: '#64748B', lineHeight: 1.6 }}>
-            A unified foundation for isolation, verified components, and governance that lives anywhere your agents run. Most teams are flying blind with unsafe overrides and no audit trail. SentinelKey brings it all together on the stack you already run.
+            Most development teams stitch together five disjointed security services—Auth0 for logins, an external KMS for secrets, third-party log aggregators, and custom heuristics. SentinelKey unifies authentication, field/file encryption, heuristic intrusion detection, and ML anomaly scoring into one cohesive stack.
           </p>
         </div>
 
@@ -94,10 +86,10 @@ export const Features: React.FC = () => {
             gap: '2rem',
           }}
         >
-          {/* Left: Developer View */}
+          {/* Left: Developer SDK View */}
           <div
             style={{
-              backgroundColor: 'var(--landing-terminal-bg)',
+              backgroundColor: '#0F172A',
               borderRadius: '14px',
               padding: '1.5rem',
               boxShadow: '0 20px 40px rgba(17, 22, 37, 0.25)',
@@ -111,7 +103,7 @@ export const Features: React.FC = () => {
                 <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block' }} />
                 <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                 <span style={{ marginLeft: '0.75rem', fontSize: '0.85rem', color: '#94A3B8', fontWeight: 500 }}>
-                  Developer view: Your laptop. One command.
+                  Developer view: @sentinelkey/security-stack-sdk
                 </span>
               </div>
               <button
@@ -130,28 +122,29 @@ export const Features: React.FC = () => {
 
             <pre
               style={{
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 lineHeight: 1.7,
                 color: '#CBD5E1',
                 overflowX: 'auto',
                 padding: '0.5rem 0',
+                margin: 0,
               }}
             >
               <code>
-                <span style={{ color: '#60A5FA' }}>$</span> sentinel agent run --enclave sgx-04 my-agent{'\n'}
-                <span style={{ color: '#10B981' }}>✔</span> [runtime] Booting isolated hardware microVM...{'\n'}
-                <span style={{ color: '#10B981' }}>✔</span> [enclave] Attestation verified: sha256:7f3a... [OK]{'\n'}
-                <span style={{ color: '#A78BFA' }}>ℹ</span> [network] Zero-trust ingress proxy mounted (mTLS strict){'\n'}
-                <span style={{ color: '#A78BFA' }}>ℹ</span> [storage] AES-256-GCM encrypted overlay volume mounted{'\n'}
-                <span style={{ color: '#38BDF8' }}>➔ Agent ready in 84ms. Bound to enclave us-east-sgx-04</span>
+                <span style={{ color: '#60A5FA' }}>$</span> pnpm add @sentinelkey/security-stack-sdk{'\n'}
+                <span style={{ color: '#10B981' }}>✔</span> [auth] JWT Rotation active (15m access / 7d refresh){'\n'}
+                <span style={{ color: '#10B981' }}>✔</span> [mfa] In-repo RFC 6238 TOTP + AES-256-GCM secrets [OK]{'\n'}
+                <span style={{ color: '#A78BFA' }}>ℹ</span> [ids] Haversine geo-velocity heuristic listening (&gt;800 km/h){'\n'}
+                <span style={{ color: '#A78BFA' }}>ℹ</span> [crypto] SKF1 binary file envelope initialized with HKDF{'\n'}
+                <span style={{ color: '#38BDF8' }}>➔ SentinelKey Security Stack initialized in 42ms. Zero SaaS lock-in.</span>
               </code>
             </pre>
           </div>
 
-          {/* Right: Governance Console */}
+          {/* Right: Security Operations Console */}
           <div
             style={{
-              backgroundColor: 'var(--landing-terminal-bg)',
+              backgroundColor: '#0F172A',
               borderRadius: '14px',
               padding: '1.5rem',
               boxShadow: '0 20px 40px rgba(17, 22, 37, 0.25)',
@@ -162,16 +155,16 @@ export const Features: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <Shield size={16} color="#60A5FA" />
               <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 500 }}>
-                Governance console: Your console. Fourteen checks.
+                IDS Telemetry: Live heuristic & classifier audit
               </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {[
-                { time: '04:12:01', target: 'image: deepseek-r1:latest', status: '14/14 checks pass', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
-                { time: '04:11:45', target: 'enclave: sgx-04-attested', status: 'Hardware integrity OK', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
-                { time: '04:10:12', target: 'policy: strict-egress-ebpf', status: 'Zero unauthorized calls', color: '#60A5FA', bg: 'rgba(96, 165, 250, 0.12)' },
-                { time: '04:09:50', target: 'rego-engine: v1.4', status: 'Zero violations', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
+                { time: '14:22:08', target: 'geo-velocity: NY -> London in 40m', status: 'ALERT TRIGGERED (>800 km/h)', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' },
+                { time: '14:21:45', target: 'file: invoice.pdf.exe', status: 'BLOCKED (FILE-003 Double Extension)', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' },
+                { time: '14:20:12', target: 'email: security@paypa1.com', status: 'BLOCKED (EML-001 Typosquatting)', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' },
+                { time: '14:19:30', target: 'mfa: RFC 6238 TOTP verify', status: 'PASSED (Replay Protected)', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' },
               ].map((item, idx) => (
                 <div
                   key={idx}
@@ -210,26 +203,26 @@ export const Features: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. "The runtime under every agent" (2x2 Grid) */}
+      {/* 3. The 4 Actual Core Pillars of SentinelKey (2x2 Grid) */}
       <section style={{ backgroundColor: 'var(--landing-section-alt)', padding: '6rem 1.5rem', borderTop: '1px solid #E2E8F0' }}>
         <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 4rem' }}>
             <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
-              The runtime under every agent
+              Four Essential Pillars in One Stack
             </h2>
             <p style={{ fontSize: '1.1rem', color: '#64748B' }}>
-              The foundation that runs the cloud now on the agent box. Same guards. Same stack.
+              Every layer built from scratch with pure mathematical algorithms and native Node.js/Python cryptography.
             </p>
           </div>
 
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
               gap: '2rem',
             }}
           >
-            {/* Card 1 */}
+            {/* Card 1: Auth + MFA */}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -238,30 +231,36 @@ export const Features: React.FC = () => {
                 padding: '2.5rem',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
               }}
+              className="spotlight-card"
             >
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-                Isolation you can trust
-              </h3>
-              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Hardware-level enclave execution is the foundation of safe agent runs. Ephemeral sandboxes shield host memory and kernel syscalls.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Shield size={22} color="#1D63ED" />
+                </div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>
+                  Auth, RBAC & Adaptive MFA
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                JWT access tokens (15m) with refresh token rotation and reuse detection. In-repo RFC 6238 TOTP with AES-256-GCM encrypted secrets, 8 single-use recovery codes, QR codes, and exponential lockout backoff.
               </p>
               <div
                 style={{
-                  backgroundColor: '#111625',
+                  backgroundColor: '#0F172A',
                   borderRadius: '10px',
                   padding: '1.25rem',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.825rem',
+                  fontSize: '0.8rem',
                   color: '#94A3B8',
                 }}
               >
-                <div><span style={{ color: '#10B981' }}>Running</span> agent in sandbox &apos;agent-ai-vendor&apos;...</div>
-                <div><span style={{ color: '#60A5FA' }}>✔</span> Initialized overlayfs snapshot (size: 44MB)</div>
-                <div><span style={{ color: '#60A5FA' }}>✔</span> Network policy: drop all except s3.internal</div>
+                <div><span style={{ color: '#10B981' }}>POST</span> /auth/mfa/verify {'{ code: "849201", mfaToken: "..." }'}</div>
+                <div><span style={{ color: '#60A5FA' }}>✔</span> TOTP timestamp valid (window ±30s)</div>
+                <div><span style={{ color: '#60A5FA' }}>✔</span> Single-use verified. mfaLastTimeStep updated</div>
               </div>
             </div>
 
-            {/* Card 2 */}
+            {/* Card 2: IDS & ML Anomaly Detection */}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -270,30 +269,36 @@ export const Features: React.FC = () => {
                 padding: '2.5rem',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
               }}
+              className="spotlight-card"
             >
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-                Start local. Scale anywhere.
-              </h3>
-              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Start on your laptop and move to 100+ cloud enclaves for large agent teams. One command either way. Same isolation everywhere.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Activity size={22} color="#8B5CF6" />
+                </div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>
+                  Rules & ML Intrusion Detection
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                Near-real-time heuristics tracking failed login bursts, Haversine geo-velocity impossible travel (&gt;800 km/h), and privilege escalation. Integrated Python Isolation Forest scoring 8D telemetry.
               </p>
               <div
                 style={{
-                  backgroundColor: '#111625',
+                  backgroundColor: '#0F172A',
                   borderRadius: '10px',
                   padding: '1.25rem',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.825rem',
+                  fontSize: '0.8rem',
                   color: '#94A3B8',
                 }}
               >
-                <div><span style={{ color: '#38BDF8' }}>Ready in 100ms</span></div>
-                <div><span style={{ color: '#10B981' }}>✔</span> Cluster verified: us-east-sgx-04</div>
-                <div><span style={{ color: '#A78BFA' }}>Sandboxed: 10/100 nodes</span> [100 matches]</div>
+                <div><span style={{ color: '#A78BFA' }}>Scoring:</span> Haversine distance: 5570 km | Elapsed: 45 min</div>
+                <div><span style={{ color: '#EF4444' }}>➔ Implied velocity: 7426 km/h (&gt; 800 km/h threshold)</span></div>
+                <div><span style={{ color: '#F59E0B' }}>Alert dispatched:</span> RULE_IMPOSSIBLE_TRAVEL (High Severity)</div>
               </div>
             </div>
 
-            {/* Card 3 */}
+            {/* Card 3: Field & File Encryption */}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -301,31 +306,37 @@ export const Features: React.FC = () => {
                 borderRadius: '14px',
                 padding: '2.5rem',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
               }}
+              className="spotlight-card"
             >
-              <div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-                  Nothing to fix and replace
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={22} color="#10B981" />
+                </div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>
+                  Field & SKF1 File Encryption
                 </h3>
-                <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '2rem' }}>
-                  Your images, registries, and CI pipelines reuse your existing stack. No new ecosystems. No migration. The trust chain extends to agents on the same core.
-                </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                {/* 3D Wireframe Cube Vector (Image 1 reference) */}
-                <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
-                  <path d="M70 10L125 40V80L70 110L15 80V40L70 10Z" stroke="#3B82F6" strokeWidth="2" strokeDasharray="3 3" />
-                  <path d="M70 10V60M125 40L70 60M15 40L70 60" stroke="#3B82F6" strokeWidth="2" />
-                  <path d="M70 60V110" stroke="#3B82F6" strokeWidth="2" />
-                  <circle cx="70" cy="60" r="4" fill="#60A5FA" />
-                </svg>
+              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                AES-256-GCM field encryption (`enc:v1:...`) and SKF1 binary envelopes for file storage with SHA-256 integrity verification. Cryptographic domain separation via HKDF-SHA256 and zero-downtime key rotation.
+              </p>
+              <div
+                style={{
+                  backgroundColor: '#0F172A',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.8rem',
+                  color: '#94A3B8',
+                }}
+              >
+                <div><span style={{ color: '#10B981' }}>Envelope:</span> [Magic &apos;SKF1&apos;][v1][IV 12B][Tag 16B][Ciphertext]</div>
+                <div><span style={{ color: '#60A5FA' }}>Checksum:</span> SHA-256 pre-encryption digest verified</div>
+                <div><span style={{ color: '#38BDF8' }}>Rotation:</span> Active v2 key advances; v1 demoted to decrypt-only</div>
               </div>
             </div>
 
-            {/* Card 4 */}
+            {/* Card 4: Threat Classifiers & Browser Extension */}
             <div
               style={{
                 backgroundColor: '#ffffff',
@@ -333,234 +344,114 @@ export const Features: React.FC = () => {
                 borderRadius: '14px',
                 padding: '2.5rem',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
               }}
+              className="spotlight-card"
             >
-              <div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-                  No lock-in. Ever.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Globe size={22} color="#D97706" />
+                </div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>
+                  Threat Classification & Chrome Extension
                 </h3>
-                <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '2rem' }}>
-                  Built on open standards (OCI, FIPS, OIDC) day one. SOC-compliant, hardware-independent. End audit dragging for agents.
-                </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                {/* 3D Wireframe Sphere Vector (Image 1 reference) */}
-                <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
-                  <circle cx="70" cy="60" r="45" stroke="#3B82F6" strokeWidth="2" />
-                  <ellipse cx="70" cy="60" rx="45" ry="18" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="4 4" />
-                  <ellipse cx="70" cy="60" rx="18" ry="45" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="4 4" />
-                  <circle cx="70" cy="60" r="4" fill="#8B5CF6" />
-                </svg>
+              <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                Deterministic classifiers for binary magic bytes, Shannon entropy ($H &gt; 7.7$), typosquatting domains, and deceptive URLs. Paired with a Manifest V3 browser extension for pre-flight upload defense.
+              </p>
+              <div
+                style={{
+                  backgroundColor: '#0F172A',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.8rem',
+                  color: '#94A3B8',
+                }}
+              >
+                <div><span style={{ color: '#F59E0B' }}>Inspect:</span> Magic &apos;MZ&apos; in &apos;document.pdf&apos; (Disguised PE Binary)</div>
+                <div><span style={{ color: '#EF4444' }}>Verdict:</span> BLOCK (Risk score: 95/100)</div>
+                <div><span style={{ color: '#10B981' }}>Extension:</span> Intercepted in-browser before upload dispatched</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. "Unlock the Autonomy of Agents, Safely" (3 Columns) */}
+      {/* 4. Value Propositions (3 Columns) */}
       <section style={{ maxWidth: '1240px', margin: '6rem auto', padding: '0 1.5rem' }}>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: '3.5rem' }}>
-          Unlock the Autonomy<br />of Agents, Safely
+          Built for Developers.<br />Engineered for Zero SaaS Lock-In.
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '3rem' }}>
           <div>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-              Lower cost through leaked safe-entry.
+            <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
+              Zero external security SaaS bills.
             </h4>
             <p style={{ fontSize: '0.925rem', color: '#64748B', lineHeight: 1.6 }}>
-              Autonomy only saves money when agents can be trusted with writes. Dual-boundaries, shared components, and runtime policy mean agents do the work, and you don’t pay for the cleanup.
+              Why pay monthly fees to Auth0, Datadog, Snyk, and Vault when your core security stack can live entirely inside your own repository and clusters? SentinelKey gives you complete control over your cryptography and user data.
             </p>
           </div>
           <div>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-              Ship faster. Without the breach.
+            <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
+              Typed SDKs and automated token rotation.
             </h4>
             <p style={{ fontSize: '0.925rem', color: '#64748B', lineHeight: 1.6 }}>
-              Every engineer can run agents and enclaves at full speed, without the business inheriting the risk. Output goes up, audit gaps goes down. Engineering focuses on product, not plumbing.
+              Our typed TypeScript SDK (`@sentinelkey/security-stack-sdk`) handles silent 401 token refreshes, fail-safe offline defense, file uploads, and threat classification with zero boilerplate.
             </p>
           </div>
           <div>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
-              Compliant by default.
+            <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
+              Khalti billing for Nepal & beyond.
             </h4>
             <p style={{ fontSize: '0.925rem', color: '#64748B', lineHeight: 1.6 }}>
-              Identity-bound audit policy enforced at every step, with every action logged and telemetried. Evidence your auditors will actually appreciate.
+              Upgrade seamlessly in Nepalese Rupees (NPR 2,499/mo) with Khalti wallet and e-Banking. Full automated VAT invoices and zero foreign exchange fees for local engineering teams.
             </p>
           </div>
         </div>
       </section>
 
-      {/* 5. Stats Band */}
-      <section style={{ borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', padding: '5rem 1.5rem', textAlign: 'center' }}>
-        <p style={{ fontSize: '1.15rem', fontWeight: 600, color: '#0F172A', marginBottom: '3rem' }}>
-          From the platform that secured the developer laptop for the enterprise.
-        </p>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
-          <div>
-            <div style={{ fontSize: '3.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 }}>91%</div>
-            <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.5rem' }}>of the Fortune 100 trust container isolation</p>
-          </div>
-          <div>
-            <div style={{ fontSize: '3.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 }}>20B+</div>
-            <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.5rem' }}>attestation events verified</p>
-          </div>
-          <div>
-            <div style={{ fontSize: '3.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 }}>20M+</div>
-            <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.5rem' }}>secure developer workflows every day</p>
-          </div>
-        </div>
-      </section>
+      {/* 5. Browser Extension & SDK Showcase */}
+      <section style={{ backgroundColor: 'var(--landing-section-alt)', borderTop: '1px solid #E2E8F0', padding: '6rem 1.5rem', textAlign: 'center' }}>
+        <div style={{ maxWidth: '880px', margin: '0 auto' }}>
+          <h3 style={{ fontSize: '2rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.75rem' }}>
+            Pre-Flight Security with the Chrome Extension
+          </h3>
+          <p style={{ fontSize: '1.05rem', color: '#64748B', margin: '0 auto 2.5rem', lineHeight: 1.6 }}>
+            Our Manifest V3 browser companion intercepts malicious file uploads and typosquatted link clicks right in the web browser before packets leave your machine.
+          </p>
 
-      {/* 6. Desktop Showcase (Image 1 reference) */}
-      <section style={{ maxWidth: '1240px', margin: '6rem auto 3rem', padding: '0 1.5rem', textAlign: 'center' }}>
-        <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.75rem' }}>
-          SentinelKey Desktop
-        </h3>
-        <p style={{ fontSize: '1.05rem', color: '#64748B', maxWidth: '640px', margin: '0 auto 1.75rem', lineHeight: 1.6 }}>
-          How modern applications get built. Containers and the full dev loop in one place. Go from blank file to running app in minutes, shipped anywhere.
-        </p>
-        <button
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #CBD5E1',
-            padding: '0.65rem 1.5rem',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            color: '#0F172A',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            marginBottom: '3rem',
-          }}
-        >
-          <Download size={16} /> Download SentinelKey Desktop
-        </button>
-
-        {/* Desktop UI Showcase Screenshot Mockup */}
-        <div
-          style={{
-            backgroundColor: '#0F172A',
-            borderRadius: '12px',
-            border: '1px solid #334155',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            overflow: 'hidden',
-            maxWidth: '1020px',
-            margin: '0 auto',
-            textAlign: 'left',
-          }}
-        >
-          {/* Header Bar */}
-          <div style={{ backgroundColor: '#1E293B', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-              <span style={{ marginLeft: '1rem', fontSize: '0.8rem', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
-                SentinelKey Desktop 2.8.4 — SGX Enclave Active
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#94A3B8' }}>
-              <span>Memory: 1.2 GB / 16 GB</span>
-              <span>CPU: 4%</span>
-            </div>
-          </div>
-
-          {/* Desktop Body */}
-          <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.5rem' }}>
-            <div style={{ borderRight: '1px solid #334155', paddingRight: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ backgroundColor: '#334155', color: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600 }}>
-                Containers & Enclaves
+          <div
+            style={{
+              backgroundColor: '#0F172A',
+              borderRadius: '14px',
+              padding: '2rem',
+              border: '1px solid #1E293B',
+              textAlign: 'left',
+              color: '#F8FAFC',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid #1E293B', paddingBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Globe size={22} color="#60A5FA" />
+                <span style={{ fontWeight: 700, fontSize: '1rem' }}>SentinelKey Browser Companion (MV3)</span>
               </div>
-              <div style={{ color: '#94A3B8', padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>Images & Baselines</div>
-              <div style={{ color: '#94A3B8', padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>Build Shield</div>
-              <div style={{ color: '#94A3B8', padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>Scout Telemetry</div>
+              <span style={{ fontSize: '0.75rem', backgroundColor: '#10B981', color: '#000000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 800 }}>ACTIVE</span>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ color: '#F8FAFC', fontWeight: 600, fontSize: '0.95rem' }}>Active Enclave Sessions (3)</span>
-                <span style={{ backgroundColor: 'rgba(16,185,129,0.15)', color: '#10B981', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-                  Hardware SGX: Validated
-                </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.4rem' }}>Pre-Flight File Inspection</div>
+                <div style={{ fontSize: '0.9rem', color: '#FFFFFF', fontWeight: 600 }}>SHA-256 + Magic Header Verifier</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.25rem' }}>Blocks disguised executables and high-entropy packed files before upload</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { name: 'agent-deepseek-code', port: '8080:80', status: 'RUNNING (Isolated)', time: '42m ago' },
-                  { name: 'build-shield-cache', port: '9000:9000', status: 'RUNNING (Attested)', time: '2h ago' },
-                  { name: 'vault-crypto-daemon', port: '5001:5001', status: 'IDLE (Encrypted)', time: '5h ago' },
-                ].map((row, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      backgroundColor: '#1E293B',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.825rem',
-                    }}
-                  >
-                    <span style={{ color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>{row.name}</span>
-                    <span style={{ color: '#94A3B8' }}>{row.port}</span>
-                    <span style={{ color: '#10B981', fontFamily: 'var(--font-mono)' }}>{row.status}</span>
-                    <span style={{ color: '#64748B' }}>{row.time}</span>
-                  </div>
-                ))}
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.4rem' }}>Outbound Link Interception</div>
+                <div style={{ fontSize: '0.9rem', color: '#FFFFFF', fontWeight: 600 }}>Levenshtein Typosquatting Filter</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.25rem' }}>Catches deceptive hyperlink text vs href mismatches and urgency prompts</div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 7. "Build better, together" Offering Pills */}
-      <section style={{ backgroundColor: 'var(--landing-section-alt)', padding: '5rem 1.5rem', textAlign: 'center', borderTop: '1px solid #E2E8F0' }}>
-        <div
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: 'var(--landing-hero-cta)',
-            margin: '0 auto 1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Box size={24} color="#ffffff" />
-        </div>
-        <h3 style={{ fontSize: '2rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>
-          Build better, together
-        </h3>
-        <p style={{ fontSize: '1rem', color: '#64748B', marginBottom: '2rem' }}>
-          Explore these premium offerings
-        </p>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '800px', margin: '0 auto' }}>
-          {offerings.map((title, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActivePill(idx)}
-              style={{
-                backgroundColor: activePill === idx ? 'var(--landing-hero-cta)' : '#ffffff',
-                color: activePill === idx ? '#ffffff' : '#475569',
-                border: activePill === idx ? '1px solid var(--landing-hero-cta)' : '1px solid #E2E8F0',
-                padding: '0.6rem 1.25rem',
-                borderRadius: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {title}
-            </button>
-          ))}
         </div>
       </section>
     </div>

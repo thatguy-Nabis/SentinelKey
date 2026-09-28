@@ -13,6 +13,7 @@ export default defineConfig({
       '/files': 'http://localhost:4000',
       '/classify': 'http://localhost:4000',
       '/policies': 'http://localhost:4000',
+      '/domains': 'http://localhost:4000',
       '/health': 'http://localhost:4000',
     },
   },

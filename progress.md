@@ -4,21 +4,20 @@ Single source of truth for what changed in each phase. Updated after every phase
 
 ## Phase status
 
-| Phase | Title | Status |
-|---|---|---|
-| 0 | Repo & Environment Setup | ✅ complete |
-| 1 | Auth + RBAC | ✅ complete |
-| 2 | MFA | ✅ complete |
-| 3 | Logging + Rules-based IDS | ✅ complete |
-| 4 | Dashboard (React) | ✅ complete |
-| 5 | Encryption | ✅ complete |
-| 6 | ML Anomaly Detection | ✅ complete |
-| 7 | Compliance / Classification | ✅ complete |
-| 8 | SDK + Browser Extension | ✅ complete |
-| 9 | Website, Hub & Khalti Billing | ✅ complete |
+| Phase | Title                         | Status      |
+| ----- | ----------------------------- | ----------- |
+| 0     | Repo & Environment Setup      | ✅ complete |
+| 1     | Auth + RBAC                   | ✅ complete |
+| 2     | MFA                           | ✅ complete |
+| 3     | Logging + Rules-based IDS     | ✅ complete |
+| 4     | Dashboard (React)             | ✅ complete |
+| 5     | Encryption                    | ✅ complete |
+| 6     | ML Anomaly Detection          | ✅ complete |
+| 7     | Compliance / Classification   | ✅ complete |
+| 8     | SDK + Browser Extension       | ✅ complete |
+| 9     | Website, Hub & Khalti Billing | ✅ complete |
 
 ---
-
 
 ## Phase 0 — Repo & Environment Setup
 
@@ -117,13 +116,13 @@ packages/shared-types/src/
 
 ### Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/auth/register` | None | Create user (first user → admin) |
-| POST | `/auth/login` | None (rate-limited) | Returns access + refresh tokens |
-| POST | `/auth/refresh` | Refresh token in body | Rotates refresh token, returns new pair |
-| POST | `/auth/logout` | Access token | Invalidates specific refresh token |
-| GET | `/auth/me` | Access token | Returns current user profile (no password) |
+| Method | Path             | Auth                  | Description                                |
+| ------ | ---------------- | --------------------- | ------------------------------------------ |
+| POST   | `/auth/register` | None                  | Create user (first user → admin)           |
+| POST   | `/auth/login`    | None (rate-limited)   | Returns access + refresh tokens            |
+| POST   | `/auth/refresh`  | Refresh token in body | Rotates refresh token, returns new pair    |
+| POST   | `/auth/logout`   | Access token          | Invalidates specific refresh token         |
+| GET    | `/auth/me`       | Access token          | Returns current user profile (no password) |
 
 ### Decisions made
 
@@ -171,6 +170,7 @@ apps/api/src/
 ```
 
 **Files modified:**
+
 - `packages/shared-types/src/auth.ts` — Added MFA request/response interfaces (`IMfaSetupResponse`, `IMfaVerifyRequest`, `IMfaDisableRequest`, `IMfaTokenPayload`), updated `IUser` and `IAuthResponse`
 - `packages/shared-types/src/index.ts` — Exported new MFA types
 - `apps/api/src/config/env.ts` — Added `MFA_ENCRYPTION_KEY`, `MFA_MAX_FAILED_ATTEMPTS`, `MFA_LOCKOUT_DURATION_MS`, `MFA_TOKEN_EXPIRES_IN`
@@ -183,6 +183,7 @@ apps/api/src/
 - `apps/api/src/routes/auth.routes.ts` — Mounted `/auth/mfa/setup`, `/auth/mfa/verify`, `/auth/mfa/disable`
 
 **Tests added/updated (`apps/api/tests/`):**
+
 - `crypto.service.test.ts` — 6 tests: AES-256-GCM encryption/decryption, random IV, tampering detection (tag & ciphertext), wrong key rejection, invalid format
 - `totp.service.test.ts` — 20 tests: RFC 6238 official test vectors, Base32 encode/decode, time-drift tolerance ($\pm 30$s), replay protection (duplicate time step rejection), backup code generation and single-use consumption, URI and QR code data URL generation
 - `mfa.service.test.ts` — 13 tests: login branching (`mfaRequired: true` with `mfaToken`), setup generation, pending secret activation, invalid setup code rejection, TOTP login verification, replay rejection, backup recovery code consumption, attempt limiting, exponential backoff lockout (423 status), lockout enforcement, password-verified disable
@@ -191,12 +192,12 @@ apps/api/src/
 
 ### Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/auth/login` | None (rate-limited) | If MFA enabled, returns `{ mfaRequired: true, mfaToken }` |
-| POST | `/auth/mfa/setup` | Access token | Returns secret (base32), URI, QR data URL, 8 backup codes |
-| POST | `/auth/mfa/verify` | Public (`mfaToken`) or Bearer token | Completes 2FA login challenge OR confirms initial setup |
-| POST | `/auth/mfa/disable` | Access token | Requires password (and optional code); disables MFA |
+| Method | Path                | Auth                                | Description                                               |
+| ------ | ------------------- | ----------------------------------- | --------------------------------------------------------- |
+| POST   | `/auth/login`       | None (rate-limited)                 | If MFA enabled, returns `{ mfaRequired: true, mfaToken }` |
+| POST   | `/auth/mfa/setup`   | Access token                        | Returns secret (base32), URI, QR data URL, 8 backup codes |
+| POST   | `/auth/mfa/verify`  | Public (`mfaToken`) or Bearer token | Completes 2FA login challenge OR confirms initial setup   |
+| POST   | `/auth/mfa/disable` | Access token                        | Requires password (and optional code); disables MFA       |
 
 ### Decisions made
 
@@ -254,6 +255,7 @@ apps/api/src/
 ```
 
 **Files modified:**
+
 - `packages/shared-types/src/events.ts` — Defined `SecurityEventType`, `EventSeverity`, `IGeoLocation`, `ISecurityEventMetadata`, `ISecurityEvent`
 - `packages/shared-types/src/alerts.ts` — Defined `AlertSeverity`, `AlertStatus`, `HeuristicRule`, `IAlert`
 - `packages/shared-types/src/rbac.ts` — Added `alerts:manage` permission to admin and analyst roles
@@ -266,6 +268,7 @@ apps/api/src/
 - `apps/api/postman/SentinelKey.postman_collection.json` — Added Phase 3 folder (`GET /logs`, `GET /alerts`, `POST /alerts/:id/acknowledge`, `POST /alerts/:id/resolve`)
 
 **Tests added/updated (`apps/api/tests/`):**
+
 - `heuristics.test.ts` — 11 tests:
   - Haversine distance accuracy (~5570 km NY to London) and velocity calculation
   - Rule 1: Brute-force failed login burst ($\ge 5$ high, $\ge 10$ critical in under 60s)
@@ -278,12 +281,12 @@ apps/api/src/
 
 ### Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/logs` | `logs:read` | Paginated, filterable security events (type, severity, ip, userId, date range) |
-| GET | `/alerts` | `alerts:read` | Paginated, filterable alerts (status, severity, rule, ip, userId) |
-| POST | `/alerts/:id/acknowledge` | `alerts:write` | Mark alert as acknowledged by current user |
-| POST | `/alerts/:id/resolve` | `alerts:write` | Mark alert as resolved |
+| Method | Path                      | Auth           | Description                                                                    |
+| ------ | ------------------------- | -------------- | ------------------------------------------------------------------------------ |
+| GET    | `/logs`                   | `logs:read`    | Paginated, filterable security events (type, severity, ip, userId, date range) |
+| GET    | `/alerts`                 | `alerts:read`  | Paginated, filterable alerts (status, severity, rule, ip, userId)              |
+| POST   | `/alerts/:id/acknowledge` | `alerts:write` | Mark alert as acknowledged by current user                                     |
+| POST   | `/alerts/:id/resolve`     | `alerts:write` | Mark alert as resolved                                                         |
 
 ### Decisions made
 
@@ -405,6 +408,7 @@ apps/dashboard/
 ### Design Gate Documented First
 
 As required by repository governance, `apps/api/docs/encryption-design.md` was drafted and committed **prior** to any implementation code:
+
 - **Master Key Strategy**: Primary environment-injected 256-bit secret (`ENCRYPTION_MASTER_KEY`) managed by an extensible `KeyManagerService` supporting active and historical keys.
 - **Key Derivation (HKDF-SHA256)**: Cryptographic domain separation for field encryption (`sentinelkey:domain:field-encryption:v{N}`), file storage (`sentinelkey:domain:file-storage:v{N}`), and MFA secrets.
 - **Field Wire Format**: `enc:v{version}:{iv_hex}:{tag_hex}:{ciphertext_hex}` using AES-256-GCM with 96-bit random IV and 128-bit authentication tag.
@@ -437,6 +441,7 @@ apps/api/
 ```
 
 **Files modified:**
+
 - `packages/shared-types/src/encryption.ts` — Defined `IEncryptedFile`, `IEncryptedFileMetadata`, `IKeyRotationResult`, `IFileFilterQuery`
 - `packages/shared-types/src/events.ts` — Added `FILE_UPLOADED`, `FILE_DOWNLOADED`, `FILE_KEY_ROTATED`
 - `packages/shared-types/src/rbac.ts` — Added `files:read`, `files:write`, `files:delete` to `Permission` and `DEFAULT_ROLE_PERMISSIONS`
@@ -447,14 +452,14 @@ apps/api/
 
 ### Endpoints
 
-| Method | Path | Auth / Role | Description |
-|--------|------|-------------|-------------|
-| POST | `/files/upload` | `files:write` | Encrypts payload with active key and stores as SKF1 envelope on disk |
-| GET | `/files` | `files:read` | Paginated listing (viewers see only own files; admins/analysts see all) |
-| GET | `/files/:id/download` | `files:read` | Decrypts SKF1 envelope, verifies SHA-256 integrity, streams original file |
-| POST | `/files/:id/rotate` | `files:write` | Re-encrypts existing file on disk to current active master key version |
-| GET | `/files/keys/status` | `encryption:read` | Returns active version and registry of all key versions (`active`, `decrypt_only`) |
-| POST | `/files/keys/rotate` | `encryption:write` | Advances active master key version, preserving previous keys for legacy reads |
+| Method | Path                  | Auth / Role        | Description                                                                        |
+| ------ | --------------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| POST   | `/files/upload`       | `files:write`      | Encrypts payload with active key and stores as SKF1 envelope on disk               |
+| GET    | `/files`              | `files:read`       | Paginated listing (viewers see only own files; admins/analysts see all)            |
+| GET    | `/files/:id/download` | `files:read`       | Decrypts SKF1 envelope, verifies SHA-256 integrity, streams original file          |
+| POST   | `/files/:id/rotate`   | `files:write`      | Re-encrypts existing file on disk to current active master key version             |
+| GET    | `/files/keys/status`  | `encryption:read`  | Returns active version and registry of all key versions (`active`, `decrypt_only`) |
+| POST   | `/files/keys/rotate`  | `encryption:write` | Advances active master key version, preserving previous keys for legacy reads      |
 
 ### Decisions made
 
@@ -505,6 +510,7 @@ apps/api/
 ```
 
 **Files modified:**
+
 - `packages/shared-types/src/alerts.ts` — Added `ML_ANOMALY_DETECTION` to `HeuristicRule` union
 - `packages/shared-types/src/index.ts` — Re-exported updated alert types
 - `apps/api/src/config/env.ts` — Added `ML_SERVICE_URL`, `ML_ANOMALY_THRESHOLD`, `ML_ANOMALY_ENABLED`
@@ -513,6 +519,7 @@ apps/api/
 ### Feature Extraction Architecture (`features.py`)
 
 Extracts 8-dimensional normalized feature vectors from raw event documents and trailing history:
+
 1. `hour_norm`: Normalized time of day ($0.0 \dots 1.0$).
 2. `is_night_hours`: Binary flag ($1.0$ if between 22:00 and 06:00).
 3. `is_weekend`: Binary flag ($1.0$ if Saturday or Sunday).
@@ -536,12 +543,12 @@ Extracts 8-dimensional normalized feature vectors from raw event documents and t
 
 ### Endpoints (`apps/ml-service`)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Microservice liveness check, returns active model version and evaluation metrics |
-| POST | `/score` | Scores an event and trailing history in near-real-time; returns anomaly score, severity, confidence, and contributing features |
-| GET | `/model/info` | Returns complete model hyperparameters, feature names, baseline means, and standard deviations |
-| POST | `/train` | Triggers on-demand retraining and model version increment |
+| Method | Path          | Description                                                                                                                    |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/health`     | Microservice liveness check, returns active model version and evaluation metrics                                               |
+| POST   | `/score`      | Scores an event and trailing history in near-real-time; returns anomaly score, severity, confidence, and contributing features |
+| GET    | `/model/info` | Returns complete model hyperparameters, feature names, baseline means, and standard deviations                                 |
+| POST   | `/train`      | Triggers on-demand retraining and model version increment                                                                      |
 
 ### Node.js API Integration & Resiliency (`ml-anomaly.service.ts`)
 
@@ -605,6 +612,7 @@ apps/api/tests/
 ```
 
 **Files modified:**
+
 - `packages/shared-types/src/alerts.ts` — Added `EVENT_CLASSIFICATION_ALERT`, `FILE_CLASSIFICATION_BLOCKED`, `EMAIL_CLASSIFICATION_PHISHING`
 - `packages/shared-types/src/index.ts` — Exported classification types and updated alerts
 - `apps/api/src/index.ts` — Mounted `/classify` and `/policies` routes, seeded initial policies
@@ -780,16 +788,15 @@ extension/
 
 ### Verification
 
-- ✅ `pnpm --filter @sentinelkey/api test` — **132 tests passed across 18 test suites** (including 10 billing service tests).
+- ✅ `pnpm --filter @sentinelkey/api test` — **139 tests passed across 18 test suites** (including 17 billing & Khalti integration tests).
 - ✅ `pnpm --filter @sentinelkey/api typecheck` — **0 errors**.
 - ✅ `pnpm --filter @sentinelkey/website typecheck` — **0 errors**.
-- ✅ `pnpm --filter @sentinelkey/website build` — **Production bundle compiled in 3.18s**.
-- ✅ `pnpm build` — **All 6 workspace packages built successfully**.
+- ✅ `pnpm --filter @sentinelkey/website build` — **Production bundle compiled successfully**.
+- ✅ `pnpm build` — **All workspace packages built successfully**.
 
-
-
-
-
-
-
-
+### Khalti ePayment v2 Production Alignment (per docs/payment-integration.md)
+- **Protocol & Base URLs**: Supports both Sandbox (`https://dev.khalti.com/api/v2`) and Production (`https://a.khalti.com/api/v2`) with automatic environment detection based on key prefix (`test_` vs `live_`).
+- **Secret Key Sanitization**: Robust authorization header formatting (`Authorization: Key <secret_key>`), safely handling raw keys or pre-prefixed keys.
+- **Paisa Amount Convention**: Strict integer conversion (`Math.round(priceNpr * 100)`), verified against Khalti lookup totals upon verification to prevent price manipulation.
+- **Customer Phone Requirement**: Added optional customer phone and name support in checkout payload and billing UI modal, satisfying Khalti's live environment phone requirement with sandbox fallbacks.
+- **Idempotency & Security**: Guarded order fulfillment against repeated return URL visits / browser refreshes, verified invoice ownership by user ID, and cleaned query string parameters upon verification.

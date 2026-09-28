@@ -10,11 +10,13 @@ export const BILLING_PLANS: Record<string, IBillingPlan> = {
     description: 'Essential local enclave execution and core cryptographic verification for individual developers.',
     features: [
       '1 Developer seat',
+      '1 Protected client domain / localhost port',
       'Local cryptographic enclaves',
       'Community threat signatures',
       'Standard rate limiting & RBAC',
       'Community forum support',
     ],
+    domainLimit: 1,
   },
   pro: {
     id: 'pro',
@@ -25,6 +27,7 @@ export const BILLING_PLANS: Record<string, IBillingPlan> = {
     description: 'Full autonomous security with ML anomaly detection, remote attestation, and priority alerts.',
     features: [
       'Up to 10 Team seats',
+      'Up to 5 Protected client domains / localhost ports',
       'ML Anomaly Detection (isolation forest)',
       'Field & File AES-256-GCM Encryption',
       'Automated remote attestation cache',
@@ -32,6 +35,7 @@ export const BILLING_PLANS: Record<string, IBillingPlan> = {
       '99.9% uptime SLA & email support',
     ],
     highlighted: true,
+    domainLimit: 5,
   },
   enterprise: {
     id: 'enterprise',
@@ -42,12 +46,14 @@ export const BILLING_PLANS: Record<string, IBillingPlan> = {
     description: 'Custom enclaves, FIPS 140-3 compliance baselines, dedicated clusters, and 24/7 incident response.',
     features: [
       'Unlimited seats & workload clusters',
+      'Unlimited Protected client domains',
       'Hardware Enclave (SGX/Nitro) integration',
       'Custom compliance classifiers (GDPR, HIPAA, PCI)',
       'Single Sign-On (SAML / OIDC / SCIM)',
       'Dedicated security architect',
       '1-hour SLA 24/7 critical incident response',
     ],
+    domainLimit: 50,
   },
 };
 
@@ -57,4 +63,9 @@ export function getPlanById(id: string): IBillingPlan | undefined {
 
 export function getAllPlans(): IBillingPlan[] {
   return Object.values(BILLING_PLANS);
+}
+
+export function getMaxDomainsForPlan(planId: string): number {
+  const plan = BILLING_PLANS[planId];
+  return plan?.domainLimit ?? 1;
 }

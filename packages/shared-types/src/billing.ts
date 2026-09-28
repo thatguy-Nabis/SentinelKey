@@ -20,6 +20,7 @@ export interface IBillingPlan {
   description: string;
   features: string[];
   highlighted?: boolean;
+  domainLimit?: number;
 }
 
 export interface ISubscription {
@@ -51,16 +52,23 @@ export interface IInvoice {
 
 export interface ICheckoutSessionRequest {
   planId: BillingPlanId;
+  phone?: string;
+  customerName?: string;
 }
 
 export interface ICheckoutSessionResponse {
   pidx: string;
   url: string;
   orderId: string;
+  expiresAt?: string;
+  expiresIn?: number;
 }
 
 export interface IVerifyPaymentResponse {
   success: boolean;
   status: PaymentStatus;
   subscription: ISubscription;
+  transactionId?: string;
+  amountPaisa?: number;
+  message?: string;
 }

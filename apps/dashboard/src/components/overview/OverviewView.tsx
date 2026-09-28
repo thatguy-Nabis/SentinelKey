@@ -11,17 +11,26 @@ import {
   Tooltip,
   Legend,
   Filler,
+  LineController,
+  DoughnutController,
+  BarController,
 } from 'chart.js';
 import {
   ShieldAlert,
   AlertOctagon,
   Activity,
   CheckCircle2,
-  Zap,
   RefreshCw,
+  Globe,
+  Radio,
+  ExternalLink,
+  Zap,
+  AlertTriangle,
+  Server,
 } from 'lucide-react';
-import type { ISecurityEvent, IAlert } from '@sentinelkey/shared-types';
+import type { ISecurityEvent, IAlert, IClientDomain } from '@sentinelkey/shared-types';
 import * as api from '../../services/api';
+import { ServiceGuide } from './ServiceGuide';
 
 ChartJS.register(
   CategoryScale,
@@ -34,6 +43,9 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
+  LineController,
+  DoughnutController,
+  BarController,
 );
 
 interface OverviewProps {
@@ -43,9 +55,11 @@ interface OverviewProps {
 export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const [events, setEvents] = useState<ISecurityEvent[]>([]);
   const [alerts, setAlerts] = useState<IAlert[]>([]);
+  const [domains, setDomains] = useState<IClientDomain[]>([]);
+  const [selectedDomainId, setSelectedDomainId] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [simulating, setSimulating] = useState<string | null>(null);
-  const [simResult, setSimResult] = useState<string | null>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
 
   const lineChartRef = useRef<HTMLCanvasElement | null>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement | null>(null);
@@ -58,12 +72,19 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [logsRes, alertsRes] = await Promise.all([
-        api.fetchLogs({ limit: 100 }),
-        api.fetchAlerts({ limit: 100 }),
+      const [logsRes, alertsRes, domainsData] = await Promise.all([
+        api.fetchLogs({ limit: 150 }),
+        api.fetchAlerts({ limit: 150 }),
+        api.fetchDomains().catch(() => [] as IClientDomain[]),
       ]);
       setEvents(logsRes.data || []);
       setAlerts(alertsRes.data || []);
+      setDomains(domainsData || []);
+
+      // If user has domains and none selected yet, default to first domain if available
+      if (domainsData && domainsData.length > 0 && selectedDomainId === 'all') {
+        setSelectedDomainId(domainsData[0]._id);
+      }
     } catch (err) {
       console.error('Error loading dashboard telemetry:', err);
     } finally {
@@ -77,24 +98,84 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Compute stat metrics
-  const totalEvents = events.length;
-  const openAlerts = alerts.filter(a => a.status === 'open');
-  const criticalThreats = alerts.filter(a => a.severity === 'critical');
-  const loginAttempts = events.filter(e => e.type.startsWith('AUTH_LOGIN_'));
-  const successfulLogins = events.filter(e => e.type === 'AUTH_LOGIN_SUCCESS').length;
-  const loginSuccessRate = loginAttempts.length > 0 ? Math.round((successfulLogins / loginAttempts.length) * 100) : 100;
+  const activeDomain = domains.find((d) => d._id === selectedDomainId);
 
-  // Render Chart.js charts
+  // Filter events and alerts by selected client website / domain
+  const filteredEvents = events.filter((e) => {
+    if (selectedDomainId === 'all') return true;
+    if (!activeDomain) return true;
+    return (
+      e.metadata?.domainId === activeDomain._id ||
+      e.metadata?.domainUrl === activeDomain.domainUrl
+    );
+  });
+
+  const filteredAlerts = alerts.filter((a) => {
+    if (selectedDomainId === 'all') return true;
+    if (!activeDomain) return true;
+    return a.ip && filteredEvents.some((e) => e.ip === a.ip);
+  });
+
+  // Compute stat metrics based on actual data
+  const totalEvents = filteredEvents.length;
+  const openAlerts = filteredAlerts.filter((a) => a.status === 'open');
+  const criticalThreats = filteredAlerts.filter((a) => a.severity === 'critical');
+  const loginAttempts = filteredEvents.filter((e) => e.type.startsWith('AUTH_LOGIN_'));
+  const successfulLogins = filteredEvents.filter((e) => e.type === 'AUTH_LOGIN_SUCCESS').length;
+  const loginSuccessRate =
+    loginAttempts.length > 0 ? Math.round((successfulLogins / loginAttempts.length) * 100) : 100;
+
+  // Send real test telemetry ping to currently selected domain
+  const handleSendTestTelemetry = async (isThreat = false) => {
+    if (!activeDomain) return;
+    setIsSendingTest(true);
+    setTestFeedback(null);
+    try {
+      await api.simulateDomainTraffic(activeDomain._id, isThreat);
+      setTestFeedback(
+        isThreat
+          ? `⚠️ Test attack event ingested for ${activeDomain.domainUrl}!`
+          : `✅ Clean telemetry probe ingested for ${activeDomain.domainUrl}!`,
+      );
+      await loadData();
+      setTimeout(() => setTestFeedback(null), 4000);
+    } catch (err) {
+      setTestFeedback('Failed to dispatch test telemetry.');
+      setTimeout(() => setTestFeedback(null), 4000);
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  // Render Chart.js charts with real data
   useEffect(() => {
-    // 1. Line Chart: Activity Timeline
+    // 1. Line Chart: Real Activity Timeline (6 x 10m windows)
     if (lineChartRef.current) {
       if (lineChartInstance.current) lineChartInstance.current.destroy();
 
-      // Aggregate past 6 buckets
       const labels = ['50m ago', '40m ago', '30m ago', '20m ago', '10m ago', 'Just Now'];
-      const successData = [2, 5, 8, 4, 7, successfulLogins || 6];
-      const failureData = [0, 1, 3, 2, 4, events.filter(e => e.type === 'AUTH_LOGIN_FAILED').length || 2];
+      const now = Date.now();
+      const bucketSizeMs = 10 * 60 * 1000;
+      const successData = [0, 0, 0, 0, 0, 0];
+      const failureData = [0, 0, 0, 0, 0, 0];
+
+      filteredEvents.forEach((e) => {
+        const time = new Date(e.timestamp).getTime();
+        const diff = now - time;
+        const bucketIdx = 5 - Math.floor(diff / bucketSizeMs);
+        if (bucketIdx >= 0 && bucketIdx <= 5) {
+          if (e.type === 'AUTH_LOGIN_SUCCESS') {
+            successData[bucketIdx]++;
+          } else if (
+            e.type === 'AUTH_LOGIN_FAILED' ||
+            e.type === 'RATE_LIMIT_EXCEEDED' ||
+            e.severity === 'high' ||
+            e.severity === 'critical'
+          ) {
+            failureData[bucketIdx]++;
+          }
+        }
+      });
 
       lineChartInstance.current = new ChartJS(lineChartRef.current, {
         type: 'line',
@@ -102,7 +183,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           labels,
           datasets: [
             {
-              label: 'Successful Logins',
+              label: 'Clean Requests / Success',
               data: successData,
               borderColor: '#10b981',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -133,22 +214,26 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               ticks: { color: '#64748b' },
             },
             y: {
+              beginAtZero: true,
               grid: { color: 'rgba(30, 41, 59, 0.5)' },
-              ticks: { color: '#64748b', stepSize: 2 },
+              ticks: { color: '#64748b', precision: 0 },
             },
           },
         },
       });
     }
 
-    // 2. Doughnut Chart: Severity Breakdown
+    // 2. Doughnut Chart: Real Alert Severity Breakdown
     if (doughnutChartRef.current) {
       if (doughnutChartInstance.current) doughnutChartInstance.current.destroy();
 
-      const critical = alerts.filter(a => a.severity === 'critical').length || 1;
-      const high = alerts.filter(a => a.severity === 'high').length || 2;
-      const medium = alerts.filter(a => a.severity === 'medium').length || 3;
-      const low = alerts.filter(a => a.severity === 'low').length || 1;
+      const critical = filteredAlerts.filter((a) => a.severity === 'critical').length;
+      const high = filteredAlerts.filter((a) => a.severity === 'high').length;
+      const medium = filteredAlerts.filter((a) => a.severity === 'medium').length;
+      const low = filteredAlerts.filter((a) => a.severity === 'low').length;
+
+      const totalAlerts = critical + high + medium + low;
+      const chartData = totalAlerts > 0 ? [critical, high, medium, low] : [0, 0, 0, 0];
 
       doughnutChartInstance.current = new ChartJS(doughnutChartRef.current, {
         type: 'doughnut',
@@ -156,7 +241,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           labels: ['Critical', 'High', 'Medium', 'Low'],
           datasets: [
             {
-              data: [critical, high, medium, low],
+              data: chartData,
               backgroundColor: ['#f43f5e', '#fb923c', '#f59e0b', '#38bdf8'],
               borderColor: '#0f172a',
               borderWidth: 2,
@@ -176,20 +261,22 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       });
     }
 
-    // 3. Bar Chart: Top Flagged IP Sources
+    // 3. Bar Chart: Real Top Flagged IP Sources
     if (barChartRef.current) {
       if (barChartInstance.current) barChartInstance.current.destroy();
 
       const ipCounts: Record<string, number> = {};
-      for (const e of events) {
-        ipCounts[e.ip] = (ipCounts[e.ip] || 0) + 1;
+      for (const e of filteredEvents) {
+        if (e.ip) {
+          ipCounts[e.ip] = (ipCounts[e.ip] || 0) + 1;
+        }
       }
       const sortedIps = Object.entries(ipCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-      const labels = sortedIps.length > 0 ? sortedIps.map(x => x[0]) : ['198.51.100.25', '203.0.113.12', '192.168.1.15'];
-      const data = sortedIps.length > 0 ? sortedIps.map(x => x[1]) : [12, 7, 4];
+      const labels = sortedIps.length > 0 ? sortedIps.map((x) => x[0]) : ['No traffic yet'];
+      const data = sortedIps.length > 0 ? sortedIps.map((x) => x[1]) : [0];
 
       barChartInstance.current = new ChartJS(barChartRef.current, {
         type: 'bar',
@@ -197,7 +284,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           labels,
           datasets: [
             {
-              label: 'Security Events Count',
+              label: 'Actual Events Count',
               data,
               backgroundColor: 'rgba(99, 102, 241, 0.7)',
               borderColor: '#6366f1',
@@ -215,8 +302,9 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           },
           scales: {
             x: {
+              beginAtZero: true,
               grid: { color: 'rgba(30, 41, 59, 0.5)' },
-              ticks: { color: '#64748b' },
+              ticks: { color: '#64748b', precision: 0 },
             },
             y: {
               grid: { display: false },
@@ -232,64 +320,194 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       doughnutChartInstance.current?.destroy();
       barChartInstance.current?.destroy();
     };
-  }, [events, alerts, successfulLogins]);
-
-  // Demo attack simulation triggers
-  const handleSimulateBruteForce = async () => {
-    setSimulating('brute');
-    setSimResult(null);
-    try {
-      // Trigger multiple rapid failed logins to hit the IDS threshold
-      for (let i = 0; i < 6; i++) {
-        await api.login('target-account@sentinelkey.local', 'WrongPass!' + Math.random()).catch(() => {});
-      }
-      setSimResult('Simulated 6 rapid failed logins from attacker IP. Checking IDS...');
-      await loadData();
-    } catch {
-      // ignore
-    } finally {
-      setSimulating(null);
-    }
-  };
-
-  const handleSimulateImpossibleTravel = async () => {
-    setSimulating('travel');
-    setSimResult(null);
-    try {
-      // 1. Login at New York (40.71, -74.00)
-      await api.login('admin@sentinelkey.local', 'SuperSecretAdmin123!', {
-        latitude: 40.7128,
-        longitude: -74.006,
-        city: 'New York',
-      });
-      // 2. Immediately login at London (51.50, -0.12)
-      await api.login('admin@sentinelkey.local', 'SuperSecretAdmin123!', {
-        latitude: 51.5074,
-        longitude: -0.1278,
-        city: 'London',
-      });
-      setSimResult('Simulated instant multi-region logins (NY -> London, ~5570 km apart). Checking IDS...');
-      await loadData();
-    } catch (err) {
-      setSimResult(api.getErrorMessage(err, 'Simulation completed'));
-    } finally {
-      setSimulating(null);
-    }
-  };
+  }, [filteredEvents, filteredAlerts]);
 
   return (
     <div className="content-body">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={loadData}
-          disabled={isLoading}
-          style={{ gap: 6 }}
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          {isLoading ? 'Syncing Telemetry...' : 'Refresh Metrics'}
-        </button>
+      {/* Target Application & Domain Hook Header */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1rem 1.25rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          borderLeft: '4px solid var(--color-cyan)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: 'rgba(0, 240, 255, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-cyan)',
+            }}
+          >
+            <Radio size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+              Live Telemetry Target
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 2 }}>
+              <select
+                value={selectedDomainId}
+                onChange={(e) => setSelectedDomainId(e.target.value)}
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="all">All Protected Domains ({domains.length})</option>
+                {domains.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name} ({d.domainUrl})
+                  </option>
+                ))}
+              </select>
+
+              {activeDomain && (
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    backgroundColor:
+                      activeDomain.healthStatus === 'healthy'
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : 'rgba(239, 68, 68, 0.15)',
+                    color: activeDomain.healthStatus === 'healthy' ? '#10b981' : '#f43f5e',
+                  }}
+                >
+                  ● {activeDomain.healthStatus.toUpperCase()}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions & Ingestion Trigger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+          {activeDomain && (
+            <>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleSendTestTelemetry(false)}
+                disabled={isSendingTest}
+                title="Send test clean web traffic event"
+                style={{ gap: 5 }}
+              >
+                <Zap size={13} color="var(--color-emerald)" />
+                {isSendingTest ? 'Sending...' : 'Send Live Telemetry Ping'}
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleSendTestTelemetry(true)}
+                disabled={isSendingTest}
+                title="Send test IDS attack event to trigger alert"
+                style={{ gap: 5 }}
+              >
+                <AlertTriangle size={13} color="var(--color-rose)" />
+                Simulate Attack Probe
+              </button>
+            </>
+          )}
+
+          <a
+            href="http://localhost:5174/app"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-secondary btn-sm"
+            style={{ gap: 5, color: '#a78bfa' }}
+            title="Open Hub Website to register new domain / port"
+          >
+            <Globe size={13} />
+            Manage Domains in Hub
+            <ExternalLink size={11} />
+          </a>
+
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={loadData}
+            disabled={isLoading}
+            style={{ gap: 6 }}
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            {isLoading ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
       </div>
+
+      {/* Test Feedback Toast */}
+      {testFeedback && (
+        <div
+          style={{
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            color: '#6ee7b7',
+            padding: '8px 14px',
+            borderRadius: 6,
+            marginBottom: 12,
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <CheckCircle2 size={16} />
+          <span>{testFeedback}</span>
+        </div>
+      )}
+
+      {/* No Domain Notice */}
+      {domains.length === 0 && !isLoading && (
+        <div
+          style={{
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            borderRadius: 8,
+            padding: '12px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.875rem',
+            color: '#fcd34d',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Server size={18} />
+            <span>
+              <strong>No Client Website Registered:</strong> Go to the Hub Console at{' '}
+              <code>http://localhost:5174/app</code> to add your localhost port (e.g. <code>http://localhost:3000</code>)
+              and generate client API keys.
+            </span>
+          </div>
+          <a
+            href="http://localhost:5174/app"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: '#fff', textDecoration: 'underline', fontWeight: 600 }}
+          >
+            Register Now →
+          </a>
+        </div>
+      )}
 
       {/* Metrics Row */}
       <div className="stats-grid">
@@ -300,7 +518,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           title="Click to view full security audit log"
         >
           <div>
-            <div className="stat-label">Security Events (Stream)</div>
+            <div className="stat-label">Security Events ({activeDomain ? activeDomain.name : 'All Domains'})</div>
             <div className="stat-value font-mono">{totalEvents}</div>
           </div>
           <div className="stat-icon" style={{ background: 'rgba(0, 240, 255, 0.1)', color: 'var(--color-cyan)' }}>
@@ -354,8 +572,10 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       <div className="charts-grid">
         <div className="glass-panel" style={{ height: 320 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Authentication & Intrusion Telemetry</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-time window</span>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+              Live Telemetry — {activeDomain ? activeDomain.domainUrl : 'Aggregated Stream'}
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real 60-minute window</span>
           </div>
           <div style={{ height: 'calc(100% - 36px)' }}>
             <canvas ref={lineChartRef} />
@@ -363,8 +583,11 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         </div>
 
         <div className="glass-panel" style={{ height: 320 }}>
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Alert Severity Breakdown</h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              {openAlerts.length} active
+            </span>
           </div>
           <div style={{ height: 'calc(100% - 36px)' }}>
             <canvas ref={doughnutChartRef} />
@@ -376,61 +599,14 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
         <div className="glass-panel" style={{ height: 280 }}>
           <div style={{ marginBottom: 12 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Top Flagged IP Sources</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Top Flagged IP Sources (Actual)</h3>
           </div>
           <div style={{ height: 'calc(100% - 36px)' }}>
             <canvas ref={barChartRef} />
           </div>
         </div>
 
-        {/* Live Attack Simulator Widget for Demoing */}
-        <div className="glass-panel" style={{ height: 280, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Zap size={18} style={{ color: 'var(--color-cyan)' }} />
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Heuristics IDS Live Simulator</h3>
-          </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-            Execute synthetic telemetry to test Phase 3 heuristics engine triggers in real-time.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ justifyContent: 'flex-start' }}
-              onClick={handleSimulateBruteForce}
-              disabled={Boolean(simulating)}
-            >
-              {simulating === 'brute' ? <RefreshCw size={14} className="animate-spin" /> : <ShieldAlert size={14} style={{ color: 'var(--color-rose)' }} />}
-              Trigger Brute-Force Login Burst (6 failed attempts)
-            </button>
-
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ justifyContent: 'flex-start' }}
-              onClick={handleSimulateImpossibleTravel}
-              disabled={Boolean(simulating)}
-            >
-              {simulating === 'travel' ? <RefreshCw size={14} className="animate-spin" /> : <Activity size={14} style={{ color: 'var(--color-cyan)' }} />}
-              Trigger Impossible Travel (NY &rarr; London in 0s)
-            </button>
-          </div>
-
-          {simResult && (
-            <div
-              style={{
-                marginTop: 'auto',
-                padding: '8px 12px',
-                background: 'rgba(0, 240, 255, 0.08)',
-                border: '1px solid rgba(0, 240, 255, 0.2)',
-                borderRadius: 6,
-                fontSize: '0.75rem',
-                color: 'var(--color-cyan)',
-              }}
-            >
-              {simResult}
-            </div>
-          )}
-        </div>
+        <ServiceGuide onNavigateTab={onNavigateTab} />
       </div>
     </div>
   );

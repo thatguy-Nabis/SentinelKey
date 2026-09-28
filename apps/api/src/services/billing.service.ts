@@ -42,7 +42,8 @@ export class BillingService {
     userId: string,
     planId: BillingPlanId,
     userEmail: string,
-  ): Promise<{ pidx: string; url: string; orderId: string }> {
+    customerDetails?: { phone?: string; customerName?: string },
+  ): Promise<{ pidx: string; url: string; orderId: string; expiresAt?: string; expiresIn?: number }> {
     const plan = getPlanById(planId);
     if (!plan) {
       throw new Error(`Invalid plan ID: ${planId}`);
@@ -65,7 +66,7 @@ export class BillingService {
       };
     }
 
-    const amountPaisa = plan.priceNpr * 100;
+    const amountPaisa = Math.round(plan.priceNpr * 100);
     const provider = getPaymentProvider();
 
     const returnUrl = `${env.WEBSITE_URL}/app/billing`;
@@ -73,12 +74,16 @@ export class BillingService {
       planId,
       amountPaisa,
       orderName: `${plan.name} — Monthly`,
-      customer: { email: userEmail },
+      customer: {
+        email: userEmail,
+        name: customerDetails?.customerName,
+        phone: customerDetails?.phone,
+      },
       returnUrl,
       websiteUrl: env.WEBSITE_URL,
     });
 
-    // Record invoice with 'Initiated' status
+    // Record invoice with 'Initiated' status before customer redirection
     await Invoice.create({
       userId: userObjectId,
       amountPaisa,
@@ -105,12 +110,70 @@ export class BillingService {
   /** Verify Khalti payment status by pidx */
   async verifyPayment(userId: string, pidx: string): Promise<IVerifyPaymentResponse> {
     const userObjectId = new mongoose.Types.ObjectId(userId);
+    const sub = await this.getSubscription(userId);
+
+    // 1. Ownership & existence check
+    const invoice = await Invoice.findOne({ khaltiPidx: pidx, userId: userObjectId });
+    if (!invoice) {
+      const foreignInvoice = await Invoice.findOne({ khaltiPidx: pidx });
+      if (foreignInvoice) {
+        throw new Error('Unauthorized: payment transaction belongs to another account');
+      }
+    }
+
+    // 2. Idempotency guard: If order is already completed for this pidx, do not re-fulfill
+    if (invoice && invoice.status === 'Completed') {
+      return {
+        success: true,
+        status: 'Completed',
+        transactionId: invoice.transactionId,
+        amountPaisa: invoice.amountPaisa,
+        message: 'Payment already verified and subscription is active',
+        subscription: {
+          id: sub._id.toString(),
+          userId: sub.userId.toString(),
+          planId: sub.planId,
+          status: sub.status,
+          khaltiPidx: sub.khaltiPidx,
+          currentPeriodStart: sub.currentPeriodStart,
+          currentPeriodEnd: sub.currentPeriodEnd,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        },
+      };
+    }
+
+    // 3. Server-side lookup against Khalti ePayment v2
     const provider = getPaymentProvider();
     const verification = await provider.verifyPayment(pidx);
 
-    const invoice = await Invoice.findOne({ khaltiPidx: pidx });
-    const sub = await this.getSubscription(userId);
+    // 4. Amount integrity check: verify paid total_amount matches invoice
+    if (
+      verification.status === 'Completed' &&
+      invoice &&
+      verification.amountPaisa &&
+      verification.amountPaisa !== invoice.amountPaisa
+    ) {
+      invoice.status = 'Pending';
+      await invoice.save();
 
+      return {
+        success: false,
+        status: 'Pending',
+        message: `Payment amount mismatch: expected ${invoice.amountPaisa} paisa, received ${verification.amountPaisa} paisa`,
+        subscription: {
+          id: sub._id.toString(),
+          userId: sub.userId.toString(),
+          planId: sub.planId,
+          status: sub.status,
+          khaltiPidx: sub.khaltiPidx,
+          currentPeriodStart: sub.currentPeriodStart,
+          currentPeriodEnd: sub.currentPeriodEnd,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        },
+      };
+    }
+
+    // 5. Fulfill order if completed
     if (verification.status === 'Completed') {
       if (invoice) {
         invoice.status = 'Completed';
@@ -131,6 +194,8 @@ export class BillingService {
       return {
         success: true,
         status: 'Completed',
+        transactionId: verification.transactionId,
+        amountPaisa: verification.amountPaisa ?? invoice?.amountPaisa,
         subscription: {
           id: sub._id.toString(),
           userId: sub.userId.toString(),

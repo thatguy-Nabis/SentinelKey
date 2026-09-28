@@ -67,7 +67,7 @@ export const LoginPage: React.FC = () => {
             Welcome back
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginTop: '0.35rem' }}>
-            Sign in to access your SentinelKey Enclave Console
+            Sign in to access your SentinelKey Security Console
           </p>
         </div>
 

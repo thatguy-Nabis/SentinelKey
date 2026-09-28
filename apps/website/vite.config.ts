@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/auth': 'http://localhost:4000',
       '/billing': 'http://localhost:4000',
+      '/domains': 'http://localhost:4000',
       '/health': 'http://localhost:4000',
     },
   },

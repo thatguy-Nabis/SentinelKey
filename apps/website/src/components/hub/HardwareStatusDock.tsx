@@ -5,7 +5,7 @@ export const HardwareStatusDock: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const copyStatusCmd = () => {
-    navigator.clipboard.writeText('sentinel enclave status');
+    navigator.clipboard.writeText('sentinel ids status');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -46,8 +46,8 @@ export const HardwareStatusDock: React.FC = () => {
             letterSpacing: '0.01em',
           }}
         >
-          Hardware Attestation Daemon: <strong style={{ color: '#34D399' }}>OK (Enclave active)</strong>{' '}
-          <span style={{ color: '#475569' }}>|</span> Cluster: us-east-sgx-04
+          Security Stack Daemon: <strong style={{ color: '#34D399' }}>OK (IDS active)</strong>{' '}
+          <span style={{ color: '#475569' }}>|</span> ML Service: port 5001
         </span>
       </div>
 
@@ -70,7 +70,7 @@ export const HardwareStatusDock: React.FC = () => {
         title="Copy status command"
       >
         <Terminal size={14} color="#8B5CF6" />
-        <span>sentinel enclave status</span>
+        <span>sentinel ids status</span>
         {copied ? <Check size={13} color="#10B981" /> : <Copy size={13} color="#94A3B8" />}
       </button>
     </div>

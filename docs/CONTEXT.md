@@ -94,3 +94,5 @@ flowchart TD
 ## 9. Current status
 
 See [`progress.md`](../progress.md) for the phase-by-phase change log and current position.
+
+Per-feature deep-dive reports (architecture, APIs, controls, tests): [`docs/feature-reports/`](./feature-reports/README.md).

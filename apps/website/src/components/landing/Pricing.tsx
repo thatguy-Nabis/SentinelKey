@@ -34,7 +34,7 @@ export const Pricing: React.FC = () => {
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>Community Free</h3>
               </div>
               <p style={{ fontSize: '0.9rem', color: '#64748B', minHeight: '48px', marginBottom: '1.5rem' }}>
-                Essential local enclave execution and core cryptographic verification for individual developers.
+                Core authentication, TOTP MFA, and real-time intrusion detection for individual developers.
               </p>
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '2.75rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>NPR 0</span>
@@ -43,9 +43,9 @@ export const Pricing: React.FC = () => {
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '2.5rem' }}>
                 {[
                   '1 Developer seat',
-                  'Local cryptographic enclaves',
-                  'Community threat signatures',
-                  'Standard rate limiting & RBAC',
+                  'Auth & RBAC (admin/analyst/viewer)',
+                  'RFC 6238 TOTP MFA with recovery codes',
+                  'Rules-Based IDS (brute-force & geo-velocity)',
                   'Community forum support',
                 ].map((feat, idx) => (
                   <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.9rem', color: '#334155' }}>
@@ -111,7 +111,7 @@ export const Pricing: React.FC = () => {
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>SentinelKey Pro</h3>
               </div>
               <p style={{ fontSize: '0.9rem', color: '#64748B', minHeight: '48px', marginBottom: '1.5rem' }}>
-                Full autonomous security with ML anomaly detection, remote attestation, and priority alerts.
+                Full security stack with ML anomaly detection, SKF1 encryption, threat classifiers, and priority alerts.
               </p>
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '2.75rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>NPR 2,499</span>
@@ -122,7 +122,7 @@ export const Pricing: React.FC = () => {
                   'Up to 10 Team seats',
                   'ML Anomaly Detection (Isolation Forest)',
                   'Field & File AES-256-GCM Encryption',
-                  'Automated remote attestation cache',
+                  'Pre-flight Manifest V3 file inspection',
                   'Khalti ePayment automated invoicing',
                   'Priority security alert routing',
                   '99.9% uptime SLA & email support',
@@ -171,7 +171,7 @@ export const Pricing: React.FC = () => {
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A' }}>Enterprise Sentinel</h3>
               </div>
               <p style={{ fontSize: '0.9rem', color: '#64748B', minHeight: '48px', marginBottom: '1.5rem' }}>
-                Custom enclaves, FIPS 140-3 compliance baselines, dedicated clusters, and 24/7 incident response.
+                Custom deployment, dedicated cryptographic architect, extended RBAC policies, and 24/7 incident response.
               </p>
               <div style={{ marginBottom: '2rem' }}>
                 <span style={{ fontSize: '2.75rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>Custom</span>
@@ -179,10 +179,10 @@ export const Pricing: React.FC = () => {
               </div>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '2.5rem' }}>
                 {[
-                  'Unlimited seats & workload clusters',
-                  'Hardware Enclave (SGX/Nitro) integration',
-                  'Custom compliance classifiers (GDPR, HIPAA)',
-                  'Single Sign-On (SAML / OIDC / SCIM)',
+                  'Unlimited seats & workspaces',
+                  'Custom IDS rules & classifier thresholds',
+                  'Dedicated field encryption key management',
+                  'Single Sign-On (SAML / OIDC)',
                   'Dedicated cryptographic architect',
                   '1-hour SLA 24/7 critical incident response',
                 ].map((feat, idx) => (
