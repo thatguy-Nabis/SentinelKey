@@ -10,13 +10,22 @@ import {
   Shield,
   Phone,
   X,
+  Activity,
+  FileText,
+  AlertOctagon,
+  Zap,
 } from 'lucide-react';
 
 import { HubHeader } from '../components/hub/HubHeader.js';
 import { HubSidebar } from '../components/hub/HubSidebar.js';
 import { api } from '../services/api.js';
 import { useAuth } from '../context/AuthContext.js';
-import type { IBillingPlan, ISubscription, IInvoice } from '@sentinelkey/shared-types';
+import type {
+  IBillingPlan,
+  ISubscription,
+  IInvoice,
+  IAccruedOverageEstimate,
+} from '@sentinelkey/shared-types';
 
 export const BillingPage: React.FC = () => {
   const { user } = useAuth();
@@ -24,24 +33,35 @@ export const BillingPage: React.FC = () => {
   const [plans, setPlans] = useState<IBillingPlan[]>([]);
   const [subscription, setSubscription] = useState<ISubscription | null>(null);
   const [invoices, setInvoices] = useState<IInvoice[]>([]);
+  const [usageEstimates, setUsageEstimates] = useState<IAccruedOverageEstimate[]>([]);
+  const [delinquentDomains, setDelinquentDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Modal for Khalti phone & confirmation
+  // Tab for Invoices table
+  const [invoiceTab, setInvoiceTab] = useState<'subscription' | 'usage'>('subscription');
+
+  // Modal for Subscription checkout
   const [checkoutModalPlan, setCheckoutModalPlan] = useState<IBillingPlan | null>(null);
+
+  // Modal for Usage Invoice checkout
+  const [checkoutUsageModalInvoice, setCheckoutUsageModalInvoice] = useState<IInvoice | null>(null);
+
+  // Checkout inputs
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
 
   const pidxParam = searchParams.get('pidx');
 
   const fetchData = async () => {
-    // Plans are public — load them independently so the upgrade cards always render,
-    // even when the subscription / invoice calls fail (e.g. signed out or expired session).
-    const [plansRes, subRes, invRes] = await Promise.allSettled([
+    // Load plans, subscription, invoices, usage estimate, and domain health concurrently
+    const [plansRes, subRes, invRes, estimateRes, domainsRes] = await Promise.allSettled([
       api.getBillingPlans(),
       api.getSubscription(),
       api.getInvoices(),
+      api.getUsageEstimate(),
+      api.listDomains(),
     ]);
 
     if (plansRes.status === 'fulfilled') {
@@ -53,6 +73,13 @@ export const BillingPage: React.FC = () => {
 
     if (subRes.status === 'fulfilled') setSubscription(subRes.value);
     if (invRes.status === 'fulfilled') setInvoices(invRes.value);
+    if (estimateRes.status === 'fulfilled') setUsageEstimates(estimateRes.value || []);
+    if (domainsRes.status === 'fulfilled') {
+      const suspended = domainsRes.value
+        .filter((d) => d.status === 'suspended' && d.suspensionReason === 'unpaid')
+        .map((d) => d.label || d.origin || d._id);
+      setDelinquentDomains(suspended);
+    }
 
     setLoading(false);
   };
@@ -73,22 +100,23 @@ export const BillingPage: React.FC = () => {
           window.history.replaceState({}, document.title, window.location.pathname);
 
           if (res.success && res.status === 'Completed') {
-            const planName = res.subscription.planId.toUpperCase();
+            const planName = res.subscription ? res.subscription.planId.toUpperCase() : 'INVOICE';
             const txInfo = res.transactionId ? ` (Ref: ${res.transactionId})` : '';
             setMessage({
-              text: `Payment successful! Your SentinelKey ${planName} subscription is now active.${txInfo}`,
+              text: `Payment verified successfully! SentinelKey ${planName} settled.${txInfo}`,
               type: 'success',
             });
           } else {
             setMessage({
-              text: `Payment status: ${res.status}. ${res.message || 'If you completed the payment on Khalti, it may take a few moments to sync.'}`,
+              text: `Payment status: ${res.status}. ${res.message || 'If you completed payment on Khalti, it may take a few moments to sync.'}`,
               type: 'info',
             });
           }
           await fetchData();
-        } catch (err: any) {
+        } catch (err: unknown) {
           window.history.replaceState({}, document.title, window.location.pathname);
-          setMessage({ text: err.message || 'Payment verification failed', type: 'error' });
+          const error = err as Error;
+          setMessage({ text: error.message || 'Payment verification failed', type: 'error' });
         } finally {
           setActionLoading(null);
         }
@@ -99,7 +127,6 @@ export const BillingPage: React.FC = () => {
 
   const handleOpenCheckout = (plan: IBillingPlan) => {
     if (plan.priceNpr === 0 || plan.id === 'free') {
-      // Free plan requires no payment gateway
       executeCheckout(plan.id);
       return;
     }
@@ -115,13 +142,32 @@ export const BillingPage: React.FC = () => {
         customerName: name?.trim() || undefined,
       });
       if (res.url) {
-        // Redirect to Khalti hosted checkout page (or mock in dev)
         window.location.href = res.url;
       }
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Failed to initiate checkout', type: 'error' });
+    } catch (err: unknown) {
+      const error = err as Error;
+      setMessage({ text: error.message || 'Failed to initiate checkout', type: 'error' });
       setActionLoading(null);
       setCheckoutModalPlan(null);
+    }
+  };
+
+  const executeUsageCheckout = async (invoiceId: string, phone?: string, name?: string) => {
+    setActionLoading(`usage_${invoiceId}`);
+    setMessage(null);
+    try {
+      const res = await api.checkoutUsageInvoice(invoiceId, {
+        phone: phone?.trim() || undefined,
+        customerName: name?.trim() || undefined,
+      });
+      if (res.url) {
+        window.location.href = res.url;
+      }
+    } catch (err: unknown) {
+      const error = err as Error;
+      setMessage({ text: error.message || 'Failed to initiate usage checkout', type: 'error' });
+      setActionLoading(null);
+      setCheckoutUsageModalInvoice(null);
     }
   };
 
@@ -134,12 +180,16 @@ export const BillingPage: React.FC = () => {
       await api.cancelSubscription();
       setMessage({ text: 'Subscription set to cancel at end of current period.', type: 'info' });
       await fetchData();
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Failed to cancel subscription', type: 'error' });
+    } catch (err: unknown) {
+      const error = err as Error;
+      setMessage({ text: error.message || 'Failed to cancel subscription', type: 'error' });
     } finally {
       setActionLoading(null);
     }
   };
+
+  const subscriptionInvoices = invoices.filter((inv) => !inv.type || inv.type === 'subscription');
+  const usageInvoices = invoices.filter((inv) => inv.type === 'usage');
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--hub-bg-app)', color: 'var(--hub-text-primary)' }}>
@@ -157,10 +207,10 @@ export const BillingPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#F8FAFC' }}>
-                    Billing & Subscription
+                    Billing, Metering &amp; Subscription
                   </h1>
                   <p style={{ fontSize: '0.9rem', color: '#94A3B8', marginTop: '0.25rem' }}>
-                    Manage your license plans, payment details, and Khalti ePayment invoices.
+                    Manage subscription tiers, track open-period metered domain usage, and settle Khalti ePayment invoices.
                   </p>
                 </div>
 
@@ -179,10 +229,36 @@ export const BillingPage: React.FC = () => {
                 >
                   <Shield size={16} color="#A78BFA" />
                   <span style={{ color: '#E2E8F0', fontWeight: 600 }}>Khalti ePayment API v2</span>
-                  <span style={{ color: '#A78BFA', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>NPR</span>
+                  <span style={{ color: '#A78BFA', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>NPR (Paisa)</span>
                 </div>
               </div>
             </div>
+
+            {/* Delinquency Alert Banner */}
+            {delinquentDomains.length > 0 && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid #EF4444',
+                  color: '#FCA5A5',
+                }}
+              >
+                <AlertOctagon size={20} color="#EF4444" />
+                <div style={{ flex: 1 }}>
+                  <strong>Service Warning: Domain Delinquency Active</strong>
+                  <div style={{ fontSize: '0.825rem', marginTop: '0.25rem', color: '#FEE2E2' }}>
+                    Domain(s) <strong>{delinquentDomains.join(', ')}</strong> are currently suspended due to unpaid usage invoices past their 7-day grace period. Client requests will receive HTTP 402. Settle the outstanding usage invoice below to immediately reactivate traffic.
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Notification alert */}
             {message && (
@@ -238,7 +314,7 @@ export const BillingPage: React.FC = () => {
                   className="hub-card"
                   style={{
                     padding: '1.75rem 2rem',
-                    marginBottom: '3rem',
+                    marginBottom: '2rem',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -256,7 +332,7 @@ export const BillingPage: React.FC = () => {
                           Sign in to manage your subscription
                         </h2>
                         <p style={{ fontSize: '0.85rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-                          Upgrade to Pro or Enterprise to unlock encryption, ML anomaly detection, and compliance packs.
+                          Upgrade to Pro or Enterprise to unlock multi-domain telemetry, high-throughput quotas, and metered usage.
                         </p>
                       </div>
                       <div>
@@ -320,7 +396,7 @@ export const BillingPage: React.FC = () => {
                             ? 'Cancellation pending at cycle end.'
                             : subscription.planId !== 'free'
                             ? `Renews on: ${new Date(subscription.currentPeriodEnd || Date.now()).toLocaleDateString()}`
-                            : 'Free tier has no recurring charges.'}
+                            : 'Free tier includes 1 domain and 10,000 monthly units with no recurring charges.'}
                         </p>
                       </div>
 
@@ -348,9 +424,113 @@ export const BillingPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* Accrued Open-Period Metered Overage Card (Phase 10c) */}
+                <div
+                  className="hub-card"
+                  style={{
+                    padding: '1.75rem 2rem',
+                    marginBottom: '3rem',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <Activity size={20} color="#A78BFA" />
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                          Open-Period Metered Domain Usage &amp; Overage
+                        </h3>
+                        <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
+                          Real-time API units accrued by your site-keys in the current billing cycle
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#CBD5E1' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#60A5FA' }} />
+                        Light (1u)
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#34D399' }} />
+                        Standard (3u)
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#F43F5E' }} />
+                        Heavy (10u)
+                      </span>
+                    </div>
+                  </div>
+
+                  {subscription?.planId === 'free' ? (
+                    <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)', padding: '1rem 1.25rem', borderRadius: '8px', fontSize: '0.85rem', color: '#CBD5E1' }}>
+                      Free plan provides a hard cap of <strong>10,000 units/month</strong> across your domain. Requests exceeding this threshold receive HTTP 429. Upgrade to Pro for 25,000 included units per domain and uninterrupted pay-as-you-go overage at 4 paisa/unit.
+                    </div>
+                  ) : usageEstimates.length === 0 ? (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+                      No active domains registered for metered tracking. Register an origin in the Workspace to track units.
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #334155', color: '#64748B', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                            <th style={{ padding: '0.65rem 1rem' }}>DOMAIN / ORIGIN</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>UNITS INGESTED</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>INCLUDED QUOTA</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>OVERAGE UNITS</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>RATE</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>PROJECTED OVERAGE</th>
+                            <th style={{ padding: '0.65rem 1rem' }}>CYCLE STATUS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usageEstimates.map((est) => (
+                            <tr key={est.domainId} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                              <td style={{ padding: '0.75rem 1rem', color: '#F8FAFC', fontWeight: 600 }}>
+                                {est.label} <code style={{ color: '#A78BFA', fontSize: '0.8rem' }}>({est.origin})</code>
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)', color: '#CBD5E1' }}>
+                                {est.totalUnits.toLocaleString()} units
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                                {est.includedUnits.toLocaleString()}
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)', color: est.overageUnits > 0 ? '#F59E0B' : '#64748B' }}>
+                                {est.overageUnits.toLocaleString()}
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                                {est.overageRatePaisa} paisa/u
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)', color: est.accruedOveragePaisa > 0 ? '#10B981' : '#64748B', fontWeight: 700 }}>
+                                NPR {(est.accruedOveragePaisa / 100).toFixed(2)}
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem' }}>
+                                <span
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '4px',
+                                    backgroundColor: est.isPayable ? 'rgba(16, 185, 129, 0.15)' : 'rgba(100, 116, 139, 0.2)',
+                                    color: est.isPayable ? '#34D399' : '#94A3B8',
+                                  }}
+                                >
+                                  {est.isPayable ? 'Billable at Close' : 'Rolled Forward (< NPR 10)'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
                 {/* Plan Selection Cards */}
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '1.25rem' }}>
-                  Available Plans (Paid via Khalti)
+                  Available Subscription Plans (Khalti ePayment)
                 </h3>
                 <div
                   style={{
@@ -475,77 +655,220 @@ export const BillingPage: React.FC = () => {
                   })}
                 </div>
 
-                {/* Invoices Table */}
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '1.25rem' }}>
-                  Invoice History
-                </h3>
+                {/* Invoices Section with Tabs */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={20} color="#A78BFA" />
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                      Invoice &amp; Payment History
+                    </h3>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#0B0F19', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      onClick={() => setInvoiceTab('subscription')}
+                      style={{
+                        backgroundColor: invoiceTab === 'subscription' ? '#8B5CF6' : 'transparent',
+                        color: invoiceTab === 'subscription' ? '#FFFFFF' : '#94A3B8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.45rem 0.9rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Subscription Invoices ({subscriptionInvoices.length})
+                    </button>
+                    <button
+                      onClick={() => setInvoiceTab('usage')}
+                      style={{
+                        backgroundColor: invoiceTab === 'usage' ? '#8B5CF6' : 'transparent',
+                        color: invoiceTab === 'usage' ? '#FFFFFF' : '#94A3B8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.45rem 0.9rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Domain Usage Invoices ({usageInvoices.length})
+                    </button>
+                  </div>
+                </div>
+
                 <div
                   className="hub-card"
                   style={{
                     overflowX: 'auto',
                     borderRadius: '10px',
                     padding: '0.5rem 0',
+                    marginBottom: '3rem',
                   }}
                 >
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #231B3E', color: '#64748B', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>INVOICE ID</th>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>DATE</th>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>PLAN</th>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>AMOUNT</th>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>TRANSACTION REF</th>
-                        <th style={{ padding: '0.85rem 1.5rem' }}>STATUS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoices.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
-                            No invoice records found yet.
-                          </td>
+                  {invoiceTab === 'subscription' ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #231B3E', color: '#64748B', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>INVOICE ID</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>DATE</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>PLAN</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>AMOUNT</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>TRANSACTION REF</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>STATUS</th>
                         </tr>
-                      ) : (
-                        invoices.map((inv) => (
-                          <tr key={inv.id || (inv as any)._id} style={{ borderBottom: '1px solid #1C1635' }}>
-                            <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#CBD5E1' }}>
-                              {(inv.id || (inv as any)._id).substring(0, 12)}...
-                            </td>
-                            <td style={{ padding: '0.85rem 1.5rem', color: '#94A3B8' }}>
-                              {new Date(inv.createdAt).toLocaleDateString()}
-                            </td>
-                            <td style={{ padding: '0.85rem 1.5rem', color: '#F8FAFC', fontWeight: 600 }}>
-                              {inv.planId.toUpperCase()}
-                            </td>
-                            <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#F8FAFC' }}>
-                              NPR {inv.amountNpr.toLocaleString()}
-                            </td>
-                            <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#94A3B8', fontSize: '0.8rem' }}>
-                              {inv.transactionId || (inv.khaltiPidx ? `${inv.khaltiPidx.substring(0, 10)}...` : '—')}
-                            </td>
-                            <td style={{ padding: '0.85rem 1.5rem' }}>
-                              <span
-                                style={{
-                                  backgroundColor:
-                                    inv.status === 'Completed'
-                                      ? 'rgba(16, 185, 129, 0.15)'
-                                      : 'rgba(245, 158, 11, 0.15)',
-                                  color: inv.status === 'Completed' ? '#10B981' : '#F59E0B',
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '4px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600,
-                                  fontFamily: 'var(--font-mono)',
-                                }}
-                              >
-                                {inv.status}
-                              </span>
+                      </thead>
+                      <tbody>
+                        {subscriptionInvoices.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
+                              No subscription invoice records found.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          subscriptionInvoices.map((inv) => (
+                            <tr key={inv.id} style={{ borderBottom: '1px solid #1C1635' }}>
+                              <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#CBD5E1' }}>
+                                {inv.id.substring(0, 12)}...
+                              </td>
+                              <td style={{ padding: '0.85rem 1.5rem', color: '#94A3B8' }}>
+                                {new Date(inv.createdAt).toLocaleDateString()}
+                              </td>
+                              <td style={{ padding: '0.85rem 1.5rem', color: '#F8FAFC', fontWeight: 600 }}>
+                                {inv.planId.toUpperCase()}
+                              </td>
+                              <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#F8FAFC' }}>
+                                NPR {inv.amountNpr.toLocaleString()}
+                              </td>
+                              <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#94A3B8', fontSize: '0.8rem' }}>
+                                {inv.transactionId || (inv.khaltiPidx ? `${inv.khaltiPidx.substring(0, 10)}...` : '—')}
+                              </td>
+                              <td style={{ padding: '0.85rem 1.5rem' }}>
+                                <span
+                                  style={{
+                                    backgroundColor:
+                                      inv.status === 'Completed'
+                                        ? 'rgba(16, 185, 129, 0.15)'
+                                        : 'rgba(245, 158, 11, 0.15)',
+                                    color: inv.status === 'Completed' ? '#10B981' : '#F59E0B',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    fontFamily: 'var(--font-mono)',
+                                  }}
+                                >
+                                  {inv.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #231B3E', color: '#64748B', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>INVOICE ID</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>DOMAIN ORIGIN</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>PERIOD</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>AMOUNT (NPR)</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>DUE DATE</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>STATUS</th>
+                          <th style={{ padding: '0.85rem 1.5rem' }}>ACTION</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usageInvoices.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
+                              No metered usage invoices generated yet. Invoices close automatically at the end of each billing cycle.
+                            </td>
+                          </tr>
+                        ) : (
+                          usageInvoices.map((inv) => {
+                            const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'Completed';
+                            const invId = inv.id;
+                            return (
+                              <tr key={invId} style={{ borderBottom: '1px solid #1C1635' }}>
+                                <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#CBD5E1' }}>
+                                  {invId.substring(0, 12)}...
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem', color: '#A78BFA', fontFamily: 'var(--font-mono)' }}>
+                                  {inv.domainOrigin || 'Domain Overage'}
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem', color: '#94A3B8', fontSize: '0.8rem' }}>
+                                  {inv.periodStart && inv.periodEnd
+                                    ? `${new Date(inv.periodStart).toLocaleDateString()} – ${new Date(inv.periodEnd).toLocaleDateString()}`
+                                    : new Date(inv.createdAt).toLocaleDateString()}
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem', fontFamily: 'var(--font-mono)', color: '#F8FAFC', fontWeight: 700 }}>
+                                  NPR {inv.amountNpr.toLocaleString()}
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem', fontSize: '0.8rem', color: isOverdue ? '#EF4444' : '#94A3B8' }}>
+                                  {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '—'}
+                                  {isOverdue && <span style={{ marginLeft: 6, fontWeight: 700 }}>OVERDUE</span>}
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem' }}>
+                                  <span
+                                    style={{
+                                      backgroundColor:
+                                        inv.status === 'Completed'
+                                          ? 'rgba(16, 185, 129, 0.15)'
+                                          : isOverdue
+                                          ? 'rgba(239, 68, 68, 0.15)'
+                                          : 'rgba(245, 158, 11, 0.15)',
+                                      color:
+                                        inv.status === 'Completed'
+                                          ? '#10B981'
+                                          : isOverdue
+                                          ? '#F87171'
+                                          : '#F59E0B',
+                                      padding: '0.2rem 0.5rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      fontFamily: 'var(--font-mono)',
+                                    }}
+                                  >
+                                    {inv.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.85rem 1.5rem' }}>
+                                  {inv.status !== 'Completed' ? (
+                                    <button
+                                      onClick={() => setCheckoutUsageModalInvoice(inv)}
+                                      disabled={actionLoading === `usage_${invId}`}
+                                      style={{
+                                        backgroundColor: '#8B5CF6',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '0.4rem 0.75rem',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem',
+                                      }}
+                                    >
+                                      <CreditCard size={12} />
+                                      Pay via Khalti
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: 600 }}>Settled</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </>
             )}
@@ -553,7 +876,7 @@ export const BillingPage: React.FC = () => {
         </main>
       </div>
 
-      {/* Khalti Checkout Modal */}
+      {/* Subscription Khalti Checkout Modal */}
       {checkoutModalPlan && (
         <div
           style={{
@@ -674,7 +997,7 @@ export const BillingPage: React.FC = () => {
                 }}
               />
               <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', marginTop: '0.35rem' }}>
-                Khalti ePayment API v2 requires mobile number for verification and SMS OTP.
+                Khalti ePayment API v2 requires mobile number for SMS OTP &amp; verification.
               </span>
             </div>
 
@@ -721,6 +1044,192 @@ export const BillingPage: React.FC = () => {
                 ) : (
                   <>
                     <span>Proceed to Khalti</span>
+                    <ExternalLink size={15} />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Invoice Khalti Checkout Modal */}
+      {checkoutUsageModalInvoice && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 3, 15, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="hub-card"
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              padding: '2rem',
+              borderRadius: '12px',
+              border: '1px solid #8B5CF6',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Zap size={18} color="#A78BFA" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#A78BFA', textTransform: 'uppercase' }}>
+                    Settle Usage Overage Invoice
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  {checkoutUsageModalInvoice.domainOrigin || 'Domain Usage'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setCheckoutUsageModalInvoice(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#1E1438',
+                borderRadius: '8px',
+                padding: '1rem 1.25rem',
+                marginBottom: '1.5rem',
+                border: '1px solid #3B2063',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                <span style={{ color: '#94A3B8' }}>Invoice ID</span>
+                <span style={{ color: '#CBD5E1', fontFamily: 'var(--font-mono)' }}>
+                  {checkoutUsageModalInvoice.id.substring(0, 14)}...
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                <span style={{ color: '#94A3B8' }}>Khalti Amount</span>
+                <span style={{ color: '#A78BFA', fontFamily: 'var(--font-mono)' }}>
+                  {(checkoutUsageModalInvoice.amountPaisa || checkoutUsageModalInvoice.amountNpr * 100).toLocaleString()} Paisa
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', paddingTop: '0.5rem', borderTop: '1px solid #331D58' }}>
+                <span style={{ color: '#CBD5E1', fontWeight: 600 }}>Total Settle Amount</span>
+                <span style={{ color: '#10B981', fontWeight: 700, fontSize: '1.1rem' }}>
+                  NPR {checkoutUsageModalInvoice.amountNpr.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#CBD5E1', marginBottom: '0.4rem', fontWeight: 500 }}>
+                Customer Name (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="Full name"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#140E26',
+                  border: '1px solid #3B2D60',
+                  color: '#FFFFFF',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#CBD5E1', marginBottom: '0.4rem', fontWeight: 500 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Phone size={14} color="#A78BFA" />
+                  Khalti Registered Phone
+                </span>
+              </label>
+              <input
+                type="tel"
+                placeholder="98XXXXXXXX (required in live environment)"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#140E26',
+                  border: '1px solid #3B2D60',
+                  color: '#FFFFFF',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setCheckoutUsageModalInvoice(null)}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#1C1830',
+                  color: '#CBD5E1',
+                  border: '1px solid #3B2D60',
+                  padding: '0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  executeUsageCheckout(
+                    checkoutUsageModalInvoice.id,
+                    customerPhone,
+                    customerName,
+                  )
+                }
+                disabled={actionLoading === `usage_${checkoutUsageModalInvoice.id}`}
+                style={{
+                  flex: 2,
+                  backgroundColor: '#8B5CF6',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {actionLoading === `usage_${checkoutUsageModalInvoice.id}` ? (
+                  <Loader2 size={16} className="pulse-emerald" />
+                ) : (
+                  <>
+                    <span>Settle via Khalti</span>
                     <ExternalLink size={15} />
                   </>
                 )}

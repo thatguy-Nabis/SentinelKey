@@ -48,6 +48,7 @@ export interface IUsageInvoiceLineItem {
 
 export interface IInvoice {
   id: string;
+  _id?: string;
   userId: string;
   type?: InvoiceType;
   domainId?: string;

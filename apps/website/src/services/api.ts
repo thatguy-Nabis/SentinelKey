@@ -7,8 +7,12 @@ import type {
   ICheckoutSessionResponse,
   IVerifyPaymentResponse,
   ApiResponse,
-  IClientDomain,
-  IRegisterDomainRequest,
+  IDomain,
+  ICreateDomainRequest,
+  ICreateDomainResponse,
+  IRotateKeyResponse,
+  IAccruedOverageEstimate,
+  IUsageSummaryResponse,
   IDomainProbeResult,
 } from '@sentinelkey/shared-types';
 
@@ -206,19 +210,66 @@ export const api = {
     });
   },
 
-  async getInvoices(): Promise<IInvoice[]> {
-    return request<IInvoice[]>('/billing/invoices');
+  async getInvoices(params?: { type?: 'subscription' | 'usage'; domainId?: string }): Promise<IInvoice[]> {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.domainId) query.set('domainId', params.domainId);
+    const qs = query.toString();
+    return request<IInvoice[]>(`/billing/invoices${qs ? `?${qs}` : ''}`);
   },
 
-  // Client Domains & Application Registration
-  async listDomains(): Promise<IClientDomain[]> {
-    return request<IClientDomain[]>('/domains');
+  async getUsageEstimate(): Promise<IAccruedOverageEstimate[]> {
+    return request<IAccruedOverageEstimate[]>('/billing/usage/estimate');
   },
 
-  async registerDomain(data: IRegisterDomainRequest): Promise<IClientDomain> {
-    return request<IClientDomain>('/domains', {
+  async getUsageSummary(): Promise<IUsageSummaryResponse> {
+    return request<IUsageSummaryResponse>('/billing/usage');
+  },
+
+  async checkoutUsageInvoice(
+    invoiceId: string,
+    details?: { phone?: string; customerName?: string },
+  ): Promise<ICheckoutSessionResponse> {
+    return request<ICheckoutSessionResponse>(`/billing/invoices/${invoiceId}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify(details || {}),
+    });
+  },
+
+  // Client Domains & Application Registration (Phase 10)
+  async listDomains(): Promise<IDomain[]> {
+    return request<IDomain[]>('/domains');
+  },
+
+  async registerDomain(data: ICreateDomainRequest): Promise<ICreateDomainResponse> {
+    return request<ICreateDomainResponse>('/domains', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  async rotateDomainKey(id: string): Promise<IRotateKeyResponse> {
+    return request<IRotateKeyResponse>(`/domains/${id}/rotate-key`, {
+      method: 'POST',
+    });
+  },
+
+  async suspendDomain(id: string): Promise<IDomain> {
+    return request<IDomain>(`/domains/${id}/suspend`, {
+      method: 'POST',
+    });
+  },
+
+  async reactivateDomain(id: string): Promise<IDomain> {
+    return request<IDomain>(`/domains/${id}/reactivate`, {
+      method: 'POST',
+    });
+  },
+
+  async updateDomain(id: string, label: string): Promise<IDomain> {
+    return request<IDomain>(`/domains/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
     });
   },
 

@@ -67,3 +67,18 @@ export interface IDomainDailyUsageResponse {
   totalUnits: number;
   daily: IDailyUsageBreakdown[];
 }
+
+export interface IAccruedOverageEstimate {
+  domainId: string;
+  label: string;
+  origin: string;
+  status: string;
+  periodStart: string;
+  periodEnd: string;
+  totalUnits: number;
+  includedUnits: number;
+  overageUnits: number;
+  overageRatePaisa: number;
+  accruedOveragePaisa: number;
+  isPayable: boolean;
+}

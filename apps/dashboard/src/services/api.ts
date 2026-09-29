@@ -11,10 +11,21 @@ import type {
   IDomainProbeResult,
 } from '@sentinelkey/shared-types';
 
-let accessToken: string | null = null;
+const ACCESS_TOKEN_KEY = 'sentinelkey_access_token';
+
+let accessToken: string | null = (typeof sessionStorage !== 'undefined'
+  ? sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  : null);
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (typeof sessionStorage !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    } else {
+      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    }
+  }
 }
 
 export function getAccessToken(): string | null {

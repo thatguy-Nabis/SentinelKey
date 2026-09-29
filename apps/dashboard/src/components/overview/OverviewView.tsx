@@ -105,7 +105,10 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000); // 10s auto-refresh
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadData();
+    }, 10000); // 10s auto-refresh, paused when tab is hidden
     return () => clearInterval(interval);
   }, []);
 
@@ -124,7 +127,11 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const filteredAlerts = alerts.filter((a) => {
     if (selectedDomainId === 'all') return true;
     if (!activeDomain) return true;
-    return a.ip && filteredEvents.some((e) => e.ip === a.ip);
+    return (
+      a.domainId === activeDomain._id ||
+      a.metadata?.domainId === activeDomain._id ||
+      (a.ip && filteredEvents.some((e) => e.ip === a.ip))
+    );
   });
 
   // Compute stat metrics based on actual data
@@ -349,8 +356,11 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
     return () => {
       lineChartInstance.current?.destroy();
+      lineChartInstance.current = null;
       doughnutChartInstance.current?.destroy();
+      doughnutChartInstance.current = null;
       barChartInstance.current?.destroy();
+      barChartInstance.current = null;
     };
   }, [filteredEvents, filteredAlerts, isMobile]);
 

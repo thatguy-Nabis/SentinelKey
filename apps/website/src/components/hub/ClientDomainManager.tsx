@@ -13,19 +13,25 @@ import {
   RefreshCw,
   Zap,
   Code2,
-  Eye,
-  EyeOff,
+  KeyRound,
   ShieldCheck,
+  PauseCircle,
+  PlayCircle,
+  X,
+  AlertOctagon,
 } from 'lucide-react';
-import type { IClientDomain, ISubscription } from '@sentinelkey/shared-types';
+import type { IDomain, ISubscription, DomainEnvironment } from '@sentinelkey/shared-types';
 import { api, getErrorMessage } from '../../services/api.js';
 
 interface ClientDomainManagerProps {
   subscription: ISubscription | null;
 }
 
+const RESERVED_PORTS = [4000, 5001, 5173, 5174];
+const ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
 export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscription }) => {
-  const [domains, setDomains] = useState<IClientDomain[]>([]);
+  const [domains, setDomains] = useState<IDomain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -33,13 +39,22 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Form state
-  const [name, setName] = useState('');
-  const [domainUrl, setDomainUrl] = useState('http://localhost:3000');
-  const [environment, setEnvironment] = useState<'development' | 'staging' | 'production'>('development');
+  const [label, setLabel] = useState('');
+  const [host, setHost] = useState('localhost');
+  const [port, setPort] = useState<number>(3000);
+  const [environment, setEnvironment] = useState<DomainEnvironment>('development');
 
-  // Key visibility & copy state
-  const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // One-time Key Reveal Modal State
+  const [revealedKeyInfo, setRevealedKeyInfo] = useState<{
+    siteKey: string;
+    label: string;
+    origin: string;
+    isRotation?: boolean;
+  } | null>(null);
+  const [copiedKeyText, setCopiedKeyText] = useState(false);
+
+  // Card operation states
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [probingId, setProbingId] = useState<string | null>(null);
   const [simulatingId, setSimulatingId] = useState<string | null>(null);
   const [expandedSdkDomainId, setExpandedSdkDomainId] = useState<string | null>(null);
@@ -51,7 +66,8 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
     enterprise: 50,
   };
   const maxAllowed = planLimits[planId] || 1;
-  const isLimitReached = domains.length >= maxAllowed;
+  const activeDomainsCount = domains.filter((d) => d.status !== 'deleted').length;
+  const isLimitReached = activeDomainsCount >= maxAllowed;
 
   const loadDomains = async () => {
     setIsLoading(true);
@@ -71,8 +87,19 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !domainUrl.trim()) {
-      setErrorMsg('Please enter both application name and domain/port URL.');
+    const cleanLabel = label.trim();
+    if (!cleanLabel) {
+      setErrorMsg('Please enter an application label.');
+      return;
+    }
+
+    if (RESERVED_PORTS.includes(Number(port))) {
+      setErrorMsg(`Port ${port} is reserved for internal SentinelKey services (4000 API, 5001 ML, 5173 SOC, 5174 Website).`);
+      return;
+    }
+
+    if (port < 1 || port > 65535) {
+      setErrorMsg('Port must be an integer between 1 and 65535.');
       return;
     }
 
@@ -81,18 +108,25 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
     setSuccessMsg(null);
 
     try {
-      const newDomain = await api.registerDomain({
-        name: name.trim(),
-        domainUrl: domainUrl.trim(),
+      const res = await api.registerDomain({
+        label: cleanLabel,
+        host: host.trim(),
+        port: Number(port),
         environment,
       });
 
-      setDomains((prev) => [newDomain, ...prev]);
+      setDomains((prev) => [res.domain, ...prev.filter((d) => d._id !== res.domain._id)]);
       setShowRegisterModal(false);
-      setName('');
-      setDomainUrl('http://localhost:3000');
-      setSuccessMsg(`"${newDomain.name}" (${newDomain.domainUrl}) registered and hooked to SentinelKey!`);
-      setTimeout(() => setSuccessMsg(null), 5000);
+      setLabel('');
+      setPort(3000);
+
+      // Open one-time plain key reveal modal
+      setRevealedKeyInfo({
+        siteKey: res.siteKey,
+        label: res.domain.label || cleanLabel,
+        origin: res.domain.origin || `${host}:${port}`,
+        isRotation: false,
+      });
     } catch (err) {
       setErrorMsg(getErrorMessage(err, 'Failed to register domain.'));
     } finally {
@@ -100,29 +134,84 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
     }
   };
 
-  const handleProbe = async (domain: IClientDomain) => {
+  const handleRotateKey = async (domain: IDomain) => {
+    if (
+      !confirm(
+        `Are you sure you want to rotate the site key for "${domain.label || domain.origin}"?\n\nThe previous key will immediately be invalidated and API calls using it will fail.`,
+      )
+    ) {
+      return;
+    }
+
+    setActionLoadingId(domain._id);
+    setErrorMsg(null);
+    try {
+      const res = await api.rotateDomainKey(domain._id);
+      setDomains((prev) => prev.map((d) => (d._id === domain._id ? res.domain : d)));
+
+      // Open one-time reveal modal with the newly minted key
+      setRevealedKeyInfo({
+        siteKey: res.siteKey,
+        label: res.domain.label || domain.label,
+        origin: res.domain.origin || domain.origin,
+        isRotation: true,
+      });
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err, 'Failed to rotate site key.'));
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleSuspend = async (domain: IDomain) => {
+    const isSuspended = domain.status === 'suspended';
+    const actionName = isSuspended ? 'reactivate' : 'suspend';
+
+    setActionLoadingId(domain._id);
+    setErrorMsg(null);
+    try {
+      const updated = isSuspended
+        ? await api.reactivateDomain(domain._id)
+        : await api.suspendDomain(domain._id);
+
+      setDomains((prev) => prev.map((d) => (d._id === domain._id ? updated : d)));
+      setSuccessMsg(
+        isSuspended
+          ? `Domain "${domain.label || domain.origin}" reactivated successfully!`
+          : `Domain "${domain.label || domain.origin}" has been suspended. Incoming site-key traffic will receive HTTP 403.`,
+      );
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      setErrorMsg(getErrorMessage(err, `Failed to ${actionName} domain.`));
+      setTimeout(() => setErrorMsg(null), 5000);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleProbe = async (domain: IDomain) => {
     setProbingId(domain._id);
     try {
       const probeRes = await api.probeDomain(domain._id);
-      setSuccessMsg(`Probe result for ${domain.domainUrl}: ${probeRes.message}`);
+      setSuccessMsg(`Probe result for ${domain.origin}: ${probeRes.message}`);
       setTimeout(() => setSuccessMsg(null), 4000);
       await loadDomains();
     } catch (err) {
-      setErrorMsg(getErrorMessage(err, 'Failed to ping domain.'));
+      setErrorMsg(getErrorMessage(err, 'Failed to ping domain host.'));
       setTimeout(() => setErrorMsg(null), 4000);
     } finally {
       setProbingId(null);
     }
   };
 
-  const handleSimulate = async (domain: IClientDomain, isThreat: boolean) => {
+  const handleSimulate = async (domain: IDomain, isThreat: boolean) => {
     setSimulatingId(domain._id);
     try {
       await api.simulateDomainTraffic(domain._id, isThreat);
       setSuccessMsg(
         isThreat
-          ? `⚠️ Attack simulated against ${domain.domainUrl}! Live threat telemetry dispatched to SOC Dashboard.`
-          : `✅ Clean telemetry ping dispatched from ${domain.domainUrl} to SOC Dashboard!`,
+          ? `⚠️ Attack simulated against ${domain.origin}! Live threat telemetry dispatched to SOC Console.`
+          : `✅ Clean telemetry ping dispatched from ${domain.origin} to SOC Console!`,
       );
       setTimeout(() => setSuccessMsg(null), 4000);
       await loadDomains();
@@ -135,7 +224,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
   };
 
   const handleDelete = async (domainId: string, domainName: string) => {
-    if (!confirm(`Are you sure you want to delete and revoke monitoring for "${domainName}"?`)) {
+    if (!confirm(`Are you sure you want to delete "${domainName}"?\nHistorical usage records and invoices will be preserved.`)) {
       return;
     }
 
@@ -150,21 +239,17 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
     }
   };
 
-  const copyToClipboard = (text: string, id: string) => {
+  const copyKeyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedKey(id);
-    setTimeout(() => setCopiedKey(null), 2500);
-  };
-
-  const toggleKeyReveal = (id: string) => {
-    setRevealedKeys((prev) => ({ ...prev, [id]: !prev[id] }));
+    setCopiedKeyText(true);
+    setTimeout(() => setCopiedKeyText(false), 2500);
   };
 
   const quickPorts = [
-    { label: ':3000 (React / Next.js)', url: 'http://localhost:3000' },
-    { label: ':5173 (Vite Client)', url: 'http://localhost:5173' },
-    { label: ':8080 (Java / API)', url: 'http://localhost:8080' },
-    { label: ':8000 (FastAPI / Django)', url: 'http://localhost:8000' },
+    { label: ':3000 (React / Next.js)', port: 3000 },
+    { label: ':5175 (Client App)', port: 5175 },
+    { label: ':8080 (Java / Spring)', port: 8080 },
+    { label: ':8000 (FastAPI / Django)', port: 8000 },
   ];
 
   return (
@@ -196,13 +281,12 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 border: `1px solid ${isLimitReached ? 'rgba(239, 68, 68, 0.4)' : 'rgba(139, 92, 246, 0.4)'}`,
               }}
             >
-              {domains.length} / {maxAllowed} {planId.toUpperCase()} Quota
+              {activeDomainsCount} / {maxAllowed} {planId.toUpperCase()} Quota
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0, maxWidth: '720px' }}>
-            Register your client website or localhost port (e.g.{' '}
-            <code style={{ color: '#A78BFA' }}>http://localhost:3000</code>). Hook up live telemetry so the SOC
-            Dashboard displays genuine real-time traffic instead of dummy fallbacks.
+            Register your client web application or localhost service (e.g.{' '}
+            <code style={{ color: '#A78BFA' }}>localhost:3000</code>) to generate cryptographically hashed site keys and establish a live security &amp; metering bridge.
           </p>
         </div>
 
@@ -292,7 +376,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
             <AlertTriangle size={16} />
             <span>{errorMsg}</span>
           </div>
-          {errorMsg.includes('limit reached') && (
+          {errorMsg.includes('limit') && (
             <Link
               to="/app/billing"
               style={{
@@ -338,9 +422,8 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
             No Client Domains Registered Yet
           </h4>
           <p style={{ color: '#94A3B8', fontSize: '0.875rem', maxWidth: '580px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
-            SentinelKey protects target web applications. Register your localhost port (e.g.{' '}
-            <code style={{ color: '#A78BFA' }}>http://localhost:3000</code>) to generate client API keys and establish
-            a live telemetry bridge to the SOC Console.
+            SentinelKey protects target web applications. Register your localhost origin (e.g.{' '}
+            <code style={{ color: '#A78BFA' }}>localhost:3000</code>) to generate client site keys and establish a live telemetry &amp; metering bridge.
           </p>
           <button
             onClick={() => setShowRegisterModal(true)}
@@ -368,14 +451,15 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
       {/* Domains Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.25rem' }}>
         {domains.map((domain) => {
-          const isRevealed = revealedKeys[domain._id];
-          const isCopied = copiedKey === domain._id;
+          const isSdkOpen = expandedSdkDomainId === domain._id;
+          const isActionLoading = actionLoadingId === domain._id;
           const isProbing = probingId === domain._id;
           const isSimulating = simulatingId === domain._id;
-          const isSdkOpen = expandedSdkDomainId === domain._id;
 
-          const isHealthy = domain.healthStatus === 'healthy';
-          const isOffline = domain.healthStatus === 'offline';
+          const isActive = domain.status === 'active';
+          const isSuspended = domain.status === 'suspended';
+
+          const originUrl = `http://${domain.origin || `${domain.host}:${domain.port}`}`;
 
           return (
             <div
@@ -386,19 +470,19 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                border: isHealthy
+                border: isActive
                   ? '1px solid rgba(16, 185, 129, 0.35)'
-                  : isOffline
+                  : isSuspended
                   ? '1px solid rgba(239, 68, 68, 0.35)'
-                  : '1px solid rgba(139, 92, 246, 0.25)',
+                  : '1px solid rgba(245, 158, 11, 0.35)',
               }}
             >
               <div>
-                {/* Top Row: Name + Environment + Health Pill */}
+                {/* Top Row: Name + Environment + Status Badge */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                   <div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F8FAFC', margin: '0 0 0.25rem 0' }}>
-                      {domain.name}
+                      {domain.label || domain.name || 'Untitled Application'}
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
@@ -423,10 +507,10 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                               : '#93C5FD',
                         }}
                       >
-                        {domain.environment}
+                        {domain.environment || 'development'}
                       </span>
                       <a
-                        href={domain.domainUrl}
+                        href={originUrl}
                         target="_blank"
                         rel="noreferrer"
                         style={{
@@ -439,7 +523,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                           textDecoration: 'none',
                         }}
                       >
-                        {domain.domainUrl}
+                        {domain.origin || `${domain.host}:${domain.port}`}
                         <ExternalLink size={12} />
                       </a>
                     </div>
@@ -455,12 +539,12 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                       borderRadius: '12px',
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      backgroundColor: isHealthy
+                      backgroundColor: isActive
                         ? 'rgba(16, 185, 129, 0.15)'
-                        : isOffline
+                        : isSuspended
                         ? 'rgba(239, 68, 68, 0.15)'
                         : 'rgba(245, 158, 11, 0.15)',
-                      color: isHealthy ? '#34D399' : isOffline ? '#F87171' : '#FBBF24',
+                      color: isActive ? '#34D399' : isSuspended ? '#F87171' : '#FBBF24',
                     }}
                   >
                     <span
@@ -468,46 +552,44 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        backgroundColor: isHealthy ? '#10B981' : isOffline ? '#EF4444' : '#F59E0B',
-                        boxShadow: isHealthy ? '0 0 6px #10B981' : isOffline ? '0 0 6px #EF4444' : 'none',
+                        backgroundColor: isActive ? '#10B981' : isSuspended ? '#EF4444' : '#F59E0B',
+                        boxShadow: isActive ? '0 0 6px #10B981' : isSuspended ? '0 0 6px #EF4444' : 'none',
                       }}
                     />
-                    <span>{(domain.healthStatus ?? 'unverified').toUpperCase()}</span>
+                    <span>
+                      {isActive
+                        ? 'ACTIVE'
+                        : isSuspended
+                        ? `SUSPENDED${domain.suspensionReason ? ` (${domain.suspensionReason.toUpperCase()})` : ''}`
+                        : 'PENDING'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Metrics ribbon */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '0.75rem',
-                    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    margin: '1rem 0',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>
-                      Requests Ingested
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>
-                      {domain.stats?.requestsTotal || 0}
-                    </div>
+                {/* Suspension Alert if applicable */}
+                {isSuspended && (
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '1rem',
+                      fontSize: '0.775rem',
+                      color: '#FCA5A5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <AlertOctagon size={14} color="#F87171" />
+                    <span>
+                      Domain suspended ({domain.suspensionReason || 'manual'}). Calls using its site key return HTTP 402/403.
+                    </span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>
-                      Threats Blocked
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F43F5E' }}>
-                      {domain.stats?.threatsBlocked || 0}
-                    </div>
-                  </div>
-                </div>
+                )}
 
-                {/* API Key Box */}
+                {/* Site Key Box */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div
                     style={{
@@ -519,22 +601,23 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                       color: '#94A3B8',
                     }}
                   >
-                    <span>Client API Key</span>
+                    <span>Site Key (SHA-256 Hashed)</span>
                     <button
-                      onClick={() => toggleKeyReveal(domain._id)}
+                      onClick={() => handleRotateKey(domain)}
+                      disabled={isActionLoading}
                       style={{
                         background: 'none',
                         border: 'none',
                         color: '#A78BFA',
                         fontSize: '0.75rem',
-                        cursor: 'pointer',
+                        cursor: isActionLoading ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.25rem',
                       }}
                     >
-                      {isRevealed ? <EyeOff size={12} /> : <Eye size={12} />}
-                      {isRevealed ? 'Hide' : 'Reveal'}
+                      <KeyRound size={12} />
+                      Rotate Key
                     </button>
                   </div>
 
@@ -560,26 +643,11 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {isRevealed && domain.apiKey
-                        ? domain.apiKey
-                        : domain.siteKeyPrefix || (domain.apiKey ? `${domain.apiKey.substring(0, 12)}••••••••••••••••••••••••` : 'sk_live_••••••••••••••••••••••••')}
+                      {domain.siteKeyPrefix ? `${domain.siteKeyPrefix}••••••••••••••••••••••••` : 'sk_live_••••••••••••••••••••••••'}
                     </code>
-                    <button
-                      onClick={() => domain.apiKey && copyToClipboard(domain.apiKey, domain._id)}
-                      disabled={!domain.apiKey}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: isCopied ? '#10B981' : domain.apiKey ? '#94A3B8' : '#475569',
-                        cursor: domain.apiKey ? 'pointer' : 'default',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      title={domain.apiKey ? 'Copy API key' : 'Site key hidden after generation'}
-                    >
-                      {isCopied ? <Check size={14} /> : <Copy size={14} />}
-                    </button>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
+                      SECURED
+                    </span>
                   </div>
                 </div>
 
@@ -599,14 +667,14 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     }}
                   >
                     <div style={{ color: '#64748B', marginBottom: '0.4rem' }}>
-                      // Install: npm install @sentinelkey/security-stack-sdk
+                      // Install: pnpm add @sentinelkey/security-stack-sdk
                     </div>
                     <div><span style={{ color: '#C084FC' }}>import</span> &#123; createSentinelKeyClient &#125; <span style={{ color: '#C084FC' }}>from</span> <span style={{ color: '#34D399' }}>&apos;@sentinelkey/security-stack-sdk&apos;</span>;</div>
                     <br />
                     <div><span style={{ color: '#60A5FA' }}>const</span> sentinel = <span style={{ color: '#FCD34D' }}>createSentinelKeyClient</span>(&#123;</div>
                     <div style={{ paddingLeft: '1rem' }}>baseUrl: <span style={{ color: '#34D399' }}>&apos;http://localhost:4000&apos;</span>,</div>
-                    <div style={{ paddingLeft: '1rem' }}>apiKey: <span style={{ color: '#34D399' }}>&apos;{domain.apiKey || domain.siteKeyPrefix || 'YOUR_SITE_KEY'}&apos;</span>,</div>
-                    <div style={{ paddingLeft: '1rem' }}>domainUrl: <span style={{ color: '#34D399' }}>&apos;{domain.domainUrl}&apos;</span>,</div>
+                    <div style={{ paddingLeft: '1rem' }}>siteKey: <span style={{ color: '#FCD34D' }}>process.env.SENTINELKEY_SITE_KEY</span>,</div>
+                    <div style={{ paddingLeft: '1rem' }}>origin: <span style={{ color: '#34D399' }}>&apos;{domain.origin || `${domain.host}:${domain.port}`}&apos;</span>,</div>
                     <div>&#125;);</div>
                   </div>
                 )}
@@ -625,6 +693,27 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 }}
               >
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => handleToggleSuspend(domain)}
+                    disabled={isActionLoading}
+                    style={{
+                      background: isSuspended ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+                      border: `1px solid ${isSuspended ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                      color: isSuspended ? '#34D399' : '#FCA5A5',
+                      borderRadius: '6px',
+                      padding: '0.4rem 0.65rem',
+                      fontSize: '0.75rem',
+                      cursor: isActionLoading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                    title={isSuspended ? 'Reactivate domain traffic' : 'Suspend domain traffic'}
+                  >
+                    {isSuspended ? <PlayCircle size={12} /> : <PauseCircle size={12} />}
+                    {isSuspended ? 'Reactivate' : 'Suspend'}
+                  </button>
+
                   <button
                     onClick={() => handleProbe(domain)}
                     disabled={isProbing}
@@ -664,7 +753,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     title="Simulate normal web traffic"
                   >
                     <Zap size={12} />
-                    Send Traffic
+                    Traffic
                   </button>
 
                   <button
@@ -685,7 +774,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     title="Simulate intrusion attack to test IDS detection"
                   >
                     <AlertTriangle size={12} />
-                    Simulate Attack
+                    Attack
                   </button>
 
                   <button
@@ -704,7 +793,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     }}
                   >
                     <Code2 size={12} />
-                    SDK Code
+                    SDK
                   </button>
                 </div>
 
@@ -727,11 +816,11 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     }}
                   >
                     <ShieldCheck size={13} />
-                    View in SOC
+                    SOC
                   </a>
 
                   <button
-                    onClick={() => handleDelete(domain._id, domain.name)}
+                    onClick={() => handleDelete(domain._id, domain.label || domain.origin)}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -751,7 +840,163 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
         })}
       </div>
 
-      {/* Register Modal */}
+      {/* One-Time Site Key Reveal Modal */}
+      {revealedKeyInfo && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 110,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#1E293B',
+              border: '1px solid #8B5CF6',
+              borderRadius: '16px',
+              padding: '2.25rem',
+              maxWidth: '560px',
+              width: '100%',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.25)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <KeyRound size={22} color="#34D399" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
+                  {revealedKeyInfo.isRotation ? 'Site Key Rotated' : 'Site Key Generated'}
+                </h3>
+                <span style={{ fontSize: '0.85rem', color: '#CBD5E1' }}>
+                  {revealedKeyInfo.label} (<code style={{ color: '#A78BFA' }}>{revealedKeyInfo.origin}</code>)
+                </span>
+              </div>
+            </div>
+
+            {/* Warning Alert */}
+            <div
+              style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                borderRadius: '8px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.825rem',
+                color: '#FDE68A',
+                lineHeight: 1.5,
+              }}
+            >
+              <strong>Important Security Notice:</strong> This high-entropy site key is shown <strong>only once</strong>. For security, SentinelKey stores only its cryptographic SHA-256 hash. You will not be able to view this key again after closing this window.
+            </div>
+
+            {/* Site Key Copy Box */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#94A3B8', marginBottom: '0.4rem' }}>
+                Your Plaintext Site Key
+              </label>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  backgroundColor: '#0B0F19',
+                  border: '1px solid rgba(139, 92, 246, 0.4)',
+                  borderRadius: '8px',
+                  padding: '0.75rem 1rem',
+                }}
+              >
+                <code
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.875rem',
+                    color: '#34D399',
+                    flex: 1,
+                    wordBreak: 'break-all',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {revealedKeyInfo.siteKey}
+                </code>
+                <button
+                  onClick={() => copyKeyToClipboard(revealedKeyInfo.siteKey)}
+                  style={{
+                    backgroundColor: copiedKeyText ? '#10B981' : '#8B5CF6',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.55rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {copiedKeyText ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedKeyText ? 'Copied!' : 'Copy Key'}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick integration snippet */}
+            <div
+              style={{
+                backgroundColor: '#0F172A',
+                border: '1px solid #334155',
+                borderRadius: '8px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.75rem',
+                fontSize: '0.75rem',
+                color: '#94A3B8',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              <div style={{ color: '#64748B', marginBottom: '0.25rem' }}>// Environment file (.env):</div>
+              <div style={{ color: '#E2E8F0' }}>SENTINELKEY_SITE_KEY=&quot;{revealedKeyInfo.siteKey}&quot;</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setRevealedKeyInfo(null)}
+                style={{
+                  backgroundColor: '#8B5CF6',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '0.7rem 1.75rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)',
+                }}
+              >
+                I Have Saved This Key Securely
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Structured Register Modal */}
       {showRegisterModal && (
         <div
           style={{
@@ -794,10 +1039,10 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F8FAFC', margin: 0 }}>
-                    Register Application Website / Port
+                    Register Application Domain
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
-                    Connect your target service to SentinelKey
+                    Connect your target service origin to SentinelKey
                   </span>
                 </div>
               </div>
@@ -808,23 +1053,23 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                   border: 'none',
                   color: '#94A3B8',
                   cursor: 'pointer',
-                  fontSize: '1.25rem',
+                  padding: '4px',
                 }}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleRegister}>
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.4rem' }}>
-                  Application / Service Name
+                  Application Label / Name
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Local React Storefront, API Gateway"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
                   required
                   style={{
                     width: '100%',
@@ -839,40 +1084,83 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 />
               </div>
 
+              {/* Host and Port Split */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.4rem' }}>
+                    Host Origin
+                  </label>
+                  <select
+                    value={host}
+                    onChange={(e) => setHost(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#0F172A',
+                      border: '1px solid #334155',
+                      borderRadius: '8px',
+                      padding: '0.65rem 0.9rem',
+                      color: '#FFFFFF',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {ALLOWED_HOSTS.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.4rem' }}>
+                    Port (1–65535)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={port}
+                    onChange={(e) => setPort(Number(e.target.value))}
+                    required
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#0F172A',
+                      border: RESERVED_PORTS.includes(port) ? '1px solid #EF4444' : '1px solid #334155',
+                      borderRadius: '8px',
+                      padding: '0.65rem 0.9rem',
+                      color: '#FFFFFF',
+                      fontSize: '0.875rem',
+                      fontFamily: 'var(--font-mono)',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Reserved port alert */}
+              {RESERVED_PORTS.includes(port) && (
+                <div style={{ fontSize: '0.75rem', color: '#F87171', marginBottom: '1rem' }}>
+                  ⚠️ Port {port} is reserved by SentinelKey internal services and cannot be used.
+                </div>
+              )}
+
+              {/* Quick Presets */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '0.4rem' }}>
-                  Target Domain or Localhost URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="http://localhost:3000 or https://mysite.com"
-                  value={domainUrl}
-                  onChange={(e) => setDomainUrl(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    backgroundColor: '#0F172A',
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
-                    padding: '0.65rem 0.9rem',
-                    color: '#FFFFFF',
-                    fontSize: '0.875rem',
-                    fontFamily: 'var(--font-mono)',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {/* Quick Presets */}
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginBottom: '0.4rem' }}>
+                  Quick Port Presets:
+                </span>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                   {quickPorts.map((preset) => (
                     <button
-                      key={preset.url}
+                      key={preset.port}
                       type="button"
-                      onClick={() => setDomainUrl(preset.url)}
+                      onClick={() => setPort(preset.port)}
                       style={{
                         background: 'rgba(255, 255, 255, 0.05)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: domainUrl === preset.url ? '#A78BFA' : '#94A3B8',
-                        borderColor: domainUrl === preset.url ? '#8B5CF6' : 'rgba(255, 255, 255, 0.1)',
+                        color: port === preset.port ? '#A78BFA' : '#94A3B8',
+                        borderColor: port === preset.port ? '#8B5CF6' : 'rgba(255, 255, 255, 0.1)',
                         borderRadius: '6px',
                         padding: '0.25rem 0.55rem',
                         fontSize: '0.725rem',
@@ -891,7 +1179,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 </label>
                 <select
                   value={environment}
-                  onChange={(e) => setEnvironment(e.target.value as any)}
+                  onChange={(e) => setEnvironment(e.target.value as DomainEnvironment)}
                   style={{
                     width: '100%',
                     backgroundColor: '#0F172A',
@@ -928,7 +1216,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                 </button>
                 <button
                   type="submit"
-                  disabled={isRegistering}
+                  disabled={isRegistering || RESERVED_PORTS.includes(port)}
                   style={{
                     background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
                     border: 'none',
@@ -937,7 +1225,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     color: '#FFFFFF',
                     fontSize: '0.875rem',
                     fontWeight: 600,
-                    cursor: isRegistering ? 'not-allowed' : 'pointer',
+                    cursor: isRegistering || RESERVED_PORTS.includes(port) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
@@ -946,10 +1234,10 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                   {isRegistering ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      Registering &amp; Probing...
+                      Registering Domain...
                     </>
                   ) : (
-                    'Register & Connect'
+                    'Register & Reveal Key'
                   )}
                 </button>
               </div>

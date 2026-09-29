@@ -28,15 +28,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [pendingMfaToken, setPendingMfaToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial bootstrap: try to load profile if refresh token exists
+    // Initial bootstrap: restore session or refresh token proactively
     const initAuth = async () => {
       const refreshToken = api.getStoredRefreshToken();
       if (refreshToken) {
         try {
+          if (!api.getAccessToken()) {
+            await api.refreshAccessToken();
+          }
           const profile = await api.getMe();
           setUser(profile);
         } catch {
-          // Silent failure on init
+          // If refresh or getMe failed, clean up
           api.setAccessToken(null);
           api.setStoredRefreshToken(null);
         }
