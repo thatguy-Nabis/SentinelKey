@@ -185,6 +185,213 @@ code, pre {
   background: #4c1d95;
 }
 
+/* ==========================================================================
+   Header Dropdown Menu, Hover & Selection Animations
+   ========================================================================== */
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #CBD5E1;
+  font-weight: 500;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link.active {
+  color: #60A5FA;
+  font-weight: 600;
+  background-color: rgba(96, 165, 250, 0.12);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: -0.5rem;
+  background-color: #111625;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 77, 230, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  z-index: 100;
+  animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backdrop-filter: blur(12px);
+}
+
+/* Invisible bridge so mouse doesn't drop dropdown on transition */
+.nav-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.nav-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(96, 165, 250, 0.25);
+  transform: translateX(3px);
+}
+
+.nav-dropdown-item.active {
+  background-color: rgba(29, 99, 237, 0.14);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.nav-dropdown-item .item-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.nav-dropdown-item:hover .item-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.6));
+}
+
+.nav-dropdown-item .item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  transition: color 0.15s ease;
+}
+
+.nav-dropdown-item:hover .item-title {
+  color: #60A5FA;
+}
+
+.nav-dropdown-item.active .item-title {
+  color: #93C5FD;
+}
+
+.nav-dropdown-item .item-desc {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  line-height: 1.4;
+  margin-top: 1px;
+  transition: color 0.15s ease;
+}
+
+.nav-dropdown-item:hover .item-desc {
+  color: #CBD5E1;
+}
+
+.nav-dropdown-footer-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #60A5FA;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  margin-top: 0.2rem;
+}
+
+.nav-dropdown-footer-link:hover {
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #93C5FD;
+  padding-left: 0.75rem;
+}
+
+/* ==========================================================================
+   Standardized Page Hero Section
+   ========================================================================== */
+.page-hero {
+  position: relative;
+  background-color: var(--landing-hero-bg);
+  color: #FFFFFF;
+  text-align: center;
+  padding: 4.5rem 1.5rem;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.page-hero-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(29, 99, 237, 0.15);
+  border: 1px solid rgba(29, 99, 237, 0.35);
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #93C5FD;
+  margin-bottom: 1.25rem;
+  font-weight: 500;
+}
+
+.page-hero-title {
+  font-size: clamp(2.3rem, 4.8vw, 3.65rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.25rem;
+  color: #FFFFFF;
+}
+
+.page-hero-subtitle {
+  font-size: 1.125rem;
+  color: #94A3B8;
+  line-height: 1.6;
+  max-width: 680px;
+  margin: 0 auto 2.25rem;
+}
+
 @media (max-width: 868px) {
   .hidden-mobile {
     display: none !important;

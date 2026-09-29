@@ -132,53 +132,22 @@ export const SupportPage: React.FC = () => {
       <Navbar />
 
       <main style={{ flex: 1 }}>
-        {/* Support Dark Hero matching Home Page */}
-        <section
-          style={{
-            padding: '5rem 1.5rem 4.5rem',
-            textAlign: 'center',
-            position: 'relative',
-            backgroundColor: 'var(--landing-hero-bg)',
-            color: '#FFFFFF',
-          }}
-        >
-          <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'rgba(29, 99, 237, 0.15)',
-                border: '1px solid rgba(29, 99, 237, 0.35)',
-                padding: '0.35rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.85rem',
-                color: '#93C5FD',
-                marginBottom: '1.5rem',
-                fontWeight: 500,
-              }}
-            >
+        {/* Standardized Hero Section matching All Marketing Pages */}
+        <section className="page-hero">
+          <div className="page-hero-container">
+            <div className="page-hero-badge">
               <LifeBuoy size={14} color="#60A5FA" />
               <span>SentinelKey Developer Support & Knowledge Base</span>
             </div>
 
-            <h1
-              style={{
-                fontSize: 'clamp(2.5rem, 5vw, 3.85rem)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: '1.25rem',
-                color: '#FFFFFF',
-              }}
-            >
+            <h1 className="page-hero-title">
               How can our engineering team <br />
               <span style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 assist your deployment?
               </span>
             </h1>
 
-            <p style={{ fontSize: '1.15rem', color: '#94A3B8', maxWidth: '640px', margin: '0 auto 2.5rem', lineHeight: 1.6 }}>
+            <p className="page-hero-subtitle">
               Get answers about our in-repo TOTP implementation, mathematical heuristics, ML scoring service, or submit a support ticket.
             </p>
 
@@ -235,7 +204,7 @@ export const SupportPage: React.FC = () => {
         </section>
 
         {/* Live System Status Bar in Light Section Alt */}
-        <section style={{ backgroundColor: 'var(--landing-section-alt)', borderBottom: '1px solid #E2E8F0', padding: '2.5rem 1.5rem' }}>
+        <section id="status" style={{ backgroundColor: 'var(--landing-section-alt)', borderBottom: '1px solid #E2E8F0', padding: '2.5rem 1.5rem' }}>
           <div
             style={{
               maxWidth: '1240px',
@@ -482,6 +451,7 @@ export const SupportPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '3rem', alignItems: 'start' }}>
               {/* Left: Ticket Submission Form */}
               <div
+                id="ticket"
                 style={{
                   backgroundColor: '#FFFFFF',
                   border: '1px solid #E2E8F0',
@@ -719,7 +689,7 @@ export const SupportPage: React.FC = () => {
               </div>
 
               {/* Right: Searchable FAQ Accordion in Light Theme */}
-              <div>
+              <div id="faq">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A' }}>
                     Frequently Asked Questions

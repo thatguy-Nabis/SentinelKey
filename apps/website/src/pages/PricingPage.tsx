@@ -35,53 +35,22 @@ export const PricingPage: React.FC = () => {
       <Navbar />
 
       <main style={{ flex: 1 }}>
-        {/* Dark Hero matching Home Page */}
-        <section
-          style={{
-            padding: '5rem 1.5rem 4rem',
-            textAlign: 'center',
-            position: 'relative',
-            backgroundColor: 'var(--landing-hero-bg)',
-            color: '#FFFFFF',
-          }}
-        >
-          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.35)',
-                padding: '0.35rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.85rem',
-                color: '#C4B5FD',
-                marginBottom: '1.5rem',
-                fontWeight: 500,
-              }}
-            >
+        {/* Standardized Hero Section matching All Marketing Pages */}
+        <section className="page-hero">
+          <div className="page-hero-container">
+            <div className="page-hero-badge" style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.35)', color: '#C4B5FD' }}>
               <BadgePercent size={14} color="#A78BFA" />
               <span>Transparent Pricing • Instant Khalti Checkout in NPR</span>
             </div>
 
-            <h1
-              style={{
-                fontSize: 'clamp(2.5rem, 5vw, 3.85rem)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: '1.25rem',
-                color: '#FFFFFF',
-              }}
-            >
+            <h1 className="page-hero-title">
               Predictable pricing for your <br />
               <span style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 entire security stack
               </span>
             </h1>
 
-            <p style={{ fontSize: '1.15rem', color: '#94A3B8', maxWidth: '640px', margin: '0 auto 2.5rem', lineHeight: 1.6 }}>
+            <p className="page-hero-subtitle">
               All four pillars—Auth, MFA, IDS Heuristics, ML Anomaly Scoring, and SKF1 File Encryption—included. Pay in Nepalese Rupees (NPR) with Khalti or USD.
             </p>
 

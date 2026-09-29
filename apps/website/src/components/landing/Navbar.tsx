@@ -124,7 +124,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '1.75rem' }} className="hidden-mobile">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="hidden-mobile">
             {/* Products Dropdown */}
             <div
               ref={productsRef}
@@ -134,146 +134,88 @@ export const Navbar: React.FC = () => {
             >
               <Link
                 to="/products"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.9rem',
-                  color: isActive('/products') ? '#60A5FA' : '#CBD5E1',
-                  fontWeight: isActive('/products') ? 600 : 500,
-                  transition: 'color 0.15s ease',
-                  padding: '0.5rem 0',
-                }}
+                className={`nav-link ${isActive('/products') ? 'active' : ''}`}
               >
                 <span>Products</span>
-                <ChevronDown size={14} style={{ transform: productsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <ChevronDown
+                  size={14}
+                  style={{
+                    transform: productsOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                />
               </Link>
 
               {productsOpen && (
                 <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '-1rem',
-                    width: '360px',
-                    backgroundColor: '#111625',
-                    border: '1px solid #221B3B',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                    zIndex: 100,
-                  }}
+                  className="nav-dropdown-menu"
+                  style={{ width: '360px' }}
                 >
                   <Link
-                    to="/products"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                      transition: 'background-color 0.15s',
-                    }}
+                    to="/products?category=auth"
+                    className={`nav-dropdown-item ${location.pathname === '/products' && (new URLSearchParams(location.search).get('category') === 'auth') ? 'active' : ''}`}
+                    onClick={() => setProductsOpen(false)}
                   >
-                    <Box size={20} color="#60A5FA" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Box size={20} color="#60A5FA" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Auth & RBAC</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>JWT access tokens, rotating refresh, bcrypt-12 passwords</div>
+                      <div className="item-title">Auth & RBAC</div>
+                      <div className="item-desc">JWT access tokens, rotating refresh, bcrypt-12 passwords</div>
                     </div>
                   </Link>
 
                   <Link
-                    to="/products"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'transparent',
-                      transition: 'background-color 0.15s',
-                    }}
+                    to="/products?category=mfa"
+                    className={`nav-dropdown-item ${location.pathname === '/products' && (new URLSearchParams(location.search).get('category') === 'mfa') ? 'active' : ''}`}
+                    onClick={() => setProductsOpen(false)}
                   >
-                    <Shield size={20} color="#A78BFA" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Shield size={20} color="#A78BFA" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Adaptive MFA (TOTP)</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>RFC 6238 in-repo TOTP, AES-256-GCM secrets, 8 recovery codes</div>
+                      <div className="item-title">Adaptive MFA (TOTP)</div>
+                      <div className="item-desc">RFC 6238 in-repo TOTP, AES-256-GCM secrets, 8 recovery codes</div>
                     </div>
                   </Link>
 
                   <Link
-                    to="/products"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'transparent',
-                      transition: 'background-color 0.15s',
-                    }}
+                    to="/products?category=ids"
+                    className={`nav-dropdown-item ${location.pathname === '/products' && (new URLSearchParams(location.search).get('category') === 'ids') ? 'active' : ''}`}
+                    onClick={() => setProductsOpen(false)}
                   >
-                    <Layers size={20} color="#34D399" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Layers size={20} color="#34D399" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Intrusion Detection</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Haversine geo-velocity & brute-force burst heuristics</div>
+                      <div className="item-title">Intrusion Detection</div>
+                      <div className="item-desc">Haversine geo-velocity & brute-force burst heuristics</div>
                     </div>
                   </Link>
 
                   <Link
-                    to="/products"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'transparent',
-                      transition: 'background-color 0.15s',
-                    }}
+                    to="/products?category=ml"
+                    className={`nav-dropdown-item ${location.pathname === '/products' && (new URLSearchParams(location.search).get('category') === 'ml') ? 'active' : ''}`}
+                    onClick={() => setProductsOpen(false)}
                   >
-                    <Activity size={20} color="#FBBF24" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Activity size={20} color="#FBBF24" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>ML Anomaly Engine</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>scikit-learn Isolation Forest on 8D telemetry vectors</div>
+                      <div className="item-title">ML Anomaly Engine</div>
+                      <div className="item-desc">scikit-learn Isolation Forest on 8D telemetry vectors</div>
                     </div>
                   </Link>
 
                   <Link
-                    to="/products"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'transparent',
-                      transition: 'background-color 0.15s',
-                    }}
+                    to="/products?category=encryption"
+                    className={`nav-dropdown-item ${location.pathname === '/products' && (new URLSearchParams(location.search).get('category') === 'encryption') ? 'active' : ''}`}
+                    onClick={() => setProductsOpen(false)}
                   >
-                    <Cpu size={20} color="#EC4899" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Cpu size={20} color="#EC4899" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>SKF1 Encryption & Classifiers</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>AES-256-GCM files, Shannon entropy, magic byte detection</div>
+                      <div className="item-title">SKF1 Encryption & Classifiers</div>
+                      <div className="item-desc">AES-256-GCM files, Shannon entropy, magic byte detection</div>
                     </div>
                   </Link>
 
-                  <div style={{ borderTop: '1px solid #1E2638', paddingTop: '0.6rem', marginTop: '0.2rem' }}>
+                  <div style={{ borderTop: '1px solid #1E2638', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
                     <Link
                       to="/products"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: '#60A5FA',
-                        padding: '0.25rem 0.5rem',
-                      }}
+                      className="nav-dropdown-footer-link"
+                      onClick={() => setProductsOpen(false)}
                     >
                       <span>Explore all security products</span>
                       <ArrowRight size={14} />
@@ -292,103 +234,64 @@ export const Navbar: React.FC = () => {
             >
               <Link
                 to="/support"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.9rem',
-                  color: isActive('/support') ? '#60A5FA' : '#CBD5E1',
-                  fontWeight: isActive('/support') ? 600 : 500,
-                  transition: 'color 0.15s ease',
-                  padding: '0.5rem 0',
-                }}
+                className={`nav-link ${isActive('/support') ? 'active' : ''}`}
               >
                 <span>Support</span>
-                <ChevronDown size={14} style={{ transform: supportOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <ChevronDown
+                  size={14}
+                  style={{
+                    transform: supportOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                />
               </Link>
 
               {supportOpen && (
                 <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '-1rem',
-                    width: '320px',
-                    backgroundColor: '#111625',
-                    border: '1px solid #221B3B',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                    zIndex: 100,
-                  }}
+                  className="nav-dropdown-menu"
+                  style={{ width: '320px' }}
                 >
-                  <Link
-                    to="/support"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    }}
+                  <a
+                    href="/support#faq"
+                    className={`nav-dropdown-item ${location.pathname === '/support' && (!location.hash || location.hash === '#faq') ? 'active' : ''}`}
+                    onClick={() => setSupportOpen(false)}
                   >
-                    <LifeBuoy size={18} color="#60A5FA" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <LifeBuoy size={18} color="#60A5FA" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Engineering Help Center</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Search FAQs, error codes, and troubleshooting</div>
+                      <div className="item-title">Engineering Help Center</div>
+                      <div className="item-desc">Search FAQs, error codes, and troubleshooting</div>
                     </div>
-                  </Link>
+                  </a>
 
-                  <Link
-                    to="/support"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                    }}
+                  <a
+                    href="/support#ticket"
+                    className={`nav-dropdown-item ${location.pathname === '/support' && location.hash === '#ticket' ? 'active' : ''}`}
+                    onClick={() => setSupportOpen(false)}
                   >
-                    <FileText size={18} color="#A78BFA" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <FileText size={18} color="#A78BFA" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Open a Ticket</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Average response in under 45 minutes</div>
+                      <div className="item-title">Open a Ticket</div>
+                      <div className="item-desc">Average response in under 45 minutes</div>
                     </div>
-                  </Link>
+                  </a>
 
-                  <Link
-                    to="/support"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                    }}
+                  <a
+                    href="/support#status"
+                    className={`nav-dropdown-item ${location.pathname === '/support' && location.hash === '#status' ? 'active' : ''}`}
+                    onClick={() => setSupportOpen(false)}
                   >
-                    <Activity size={18} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Activity size={18} color="#10B981" className="item-icon" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Live System Health</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>API & ML service uptime and alert throughput</div>
+                      <div className="item-title">Live System Health</div>
+                      <div className="item-desc">API & ML service uptime and alert throughput</div>
                     </div>
-                  </Link>
+                  </a>
 
-                  <div style={{ borderTop: '1px solid #1E2638', paddingTop: '0.6rem', marginTop: '0.2rem' }}>
+                  <div style={{ borderTop: '1px solid #1E2638', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
                     <Link
                       to="/support"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: '#60A5FA',
-                        padding: '0.25rem 0.5rem',
-                      }}
+                      className="nav-dropdown-footer-link"
+                      onClick={() => setSupportOpen(false)}
                     >
                       <span>Visit support center</span>
                       <ArrowRight size={14} />
@@ -401,12 +304,7 @@ export const Navbar: React.FC = () => {
             {/* Pricing Link */}
             <Link
               to="/pricing"
-              style={{
-                fontSize: '0.9rem',
-                color: isActive('/pricing') ? '#60A5FA' : '#CBD5E1',
-                fontWeight: isActive('/pricing') ? 600 : 500,
-                transition: 'color 0.15s ease',
-              }}
+              className={`nav-link ${isActive('/pricing') ? 'active' : ''}`}
             >
               Pricing
             </Link>
@@ -414,12 +312,7 @@ export const Navbar: React.FC = () => {
             {/* Blog Link */}
             <Link
               to="/blog"
-              style={{
-                fontSize: '0.9rem',
-                color: isActive('/blog') ? '#60A5FA' : '#CBD5E1',
-                fontWeight: isActive('/blog') ? 600 : 500,
-                transition: 'color 0.15s ease',
-              }}
+              className={`nav-link ${isActive('/blog') ? 'active' : ''}`}
             >
               Blog
             </Link>
@@ -427,12 +320,7 @@ export const Navbar: React.FC = () => {
             {/* Docs Link */}
             <Link
               to="/docs"
-              style={{
-                fontSize: '0.9rem',
-                color: isActive('/docs') ? '#60A5FA' : '#CBD5E1',
-                fontWeight: isActive('/docs') ? 600 : 500,
-                transition: 'color 0.15s ease',
-              }}
+              className={`nav-link ${isActive('/docs') ? 'active' : ''}`}
             >
               Docs
             </Link>

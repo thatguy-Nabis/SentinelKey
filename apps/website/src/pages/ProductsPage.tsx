@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../components/landing/Navbar.js';
 import { Footer } from '../components/landing/Footer.js';
 import {
@@ -202,8 +202,16 @@ curl -X POST http://localhost:4000/classify/email \\
 ];
 
 export const ProductsPage: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [searchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category');
+  const [activeCategory, setActiveCategory] = useState<string>(categoryParam || 'all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+    }
+  }, [categoryParam]);
 
   const filteredProducts = activeCategory === 'all'
     ? PRODUCTS
@@ -220,61 +228,22 @@ export const ProductsPage: React.FC = () => {
       <Navbar />
 
       <main style={{ flex: 1 }}>
-        {/* Dark Hero Section matching Home Page */}
-        <section
-          style={{
-            padding: '5rem 1.5rem 4.5rem',
-            textAlign: 'center',
-            position: 'relative',
-            backgroundColor: 'var(--landing-hero-bg)',
-            color: '#FFFFFF',
-          }}
-        >
-          <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'rgba(29, 99, 237, 0.15)',
-                border: '1px solid rgba(29, 99, 237, 0.35)',
-                padding: '0.35rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.85rem',
-                color: '#93C5FD',
-                marginBottom: '1.5rem',
-                fontWeight: 500,
-              }}
-            >
+        {/* Standardized Hero Section matching All Marketing Pages */}
+        <section className="page-hero">
+          <div className="page-hero-container">
+            <div className="page-hero-badge">
               <Zap size={14} color="#60A5FA" />
               <span>Full-Stack Security Product Modules</span>
             </div>
 
-            <h1
-              style={{
-                fontSize: 'clamp(2.5rem, 5vw, 3.85rem)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: '1.25rem',
-                color: '#FFFFFF',
-              }}
-            >
+            <h1 className="page-hero-title">
               Engineered from the ground up for <br />
               <span style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 zero external SaaS lock-in
               </span>
             </h1>
 
-            <p
-              style={{
-                fontSize: '1.15rem',
-                color: '#94A3B8',
-                lineHeight: 1.6,
-                maxWidth: '720px',
-                margin: '0 auto 2.5rem',
-              }}
-            >
+            <p className="page-hero-subtitle">
               Every security primitive in SentinelKey—from RFC 6238 TOTP and AES-256-GCM file storage to Isolation Forest anomaly scoring—runs completely within your own infrastructure.
             </p>
 

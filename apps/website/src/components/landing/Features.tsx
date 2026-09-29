@@ -12,7 +12,7 @@ export const Features: React.FC = () => {
   };
 
   return (
-    <div id="features" style={{ backgroundColor: '#ffffff', paddingTop: '15rem' }}>
+    <div id="features" style={{ backgroundColor: '#ffffff', paddingTop: '4rem' }}>
       {/* 1. Logos Trust Strip */}
       <section
         style={{

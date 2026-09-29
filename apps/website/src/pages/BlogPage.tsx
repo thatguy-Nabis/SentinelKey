@@ -307,53 +307,22 @@ export const BlogPage: React.FC = () => {
       <Navbar />
 
       <main style={{ flex: 1 }}>
-        {/* Dark Hero matching Home Page */}
-        <section
-          style={{
-            padding: '5rem 1.5rem 4rem',
-            textAlign: 'center',
-            position: 'relative',
-            backgroundColor: 'var(--landing-hero-bg)',
-            color: '#FFFFFF',
-          }}
-        >
-          <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'rgba(29, 99, 237, 0.15)',
-                border: '1px solid rgba(29, 99, 237, 0.35)',
-                padding: '0.35rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.85rem',
-                color: '#93C5FD',
-                marginBottom: '1.5rem',
-                fontWeight: 500,
-              }}
-            >
+        {/* Standardized Hero Section matching All Marketing Pages */}
+        <section className="page-hero">
+          <div className="page-hero-container">
+            <div className="page-hero-badge">
               <BookOpen size={14} color="#60A5FA" />
               <span>SentinelKey Security Engineering & Research</span>
             </div>
 
-            <h1
-              style={{
-                fontSize: 'clamp(2.5rem, 5vw, 3.85rem)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: '1.25rem',
-                color: '#FFFFFF',
-              }}
-            >
+            <h1 className="page-hero-title">
               Engineering deep dives & <br />
               <span style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 cryptographic architectures
               </span>
             </h1>
 
-            <p style={{ fontSize: '1.15rem', color: '#94A3B8', maxWidth: '640px', margin: '0 auto 2.5rem', lineHeight: 1.6 }}>
+            <p className="page-hero-subtitle">
               Read technical teardowns of our RFC 6238 TOTP engine, Haversine geo-velocity math, Isolation Forest ML models, and SKF1 file format.
             </p>
 

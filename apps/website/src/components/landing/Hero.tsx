@@ -9,7 +9,7 @@ export const Hero: React.FC = () => {
         backgroundColor: 'var(--landing-hero-bg)',
         position: 'relative',
         paddingTop: '5rem',
-        paddingBottom: '8rem',
+        paddingBottom: '5rem',
         color: '#ffffff',
         overflow: 'hidden',
         textAlign: 'center',
@@ -128,17 +128,17 @@ export const Hero: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Spotlight Cards (Overlapping Hero bottom) */}
+      {/* 3 Spotlight Cards */}
       <div
         style={{
           maxWidth: '1240px',
-          margin: '4.5rem auto -12rem',
+          margin: '3.5rem auto 0',
           padding: '0 1.5rem',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           gap: '1.5rem',
           position: 'relative',
-          zIndex: 20,
+          zIndex: 10,
         }}
       >
         {/* Spotlight Card 1 */}
