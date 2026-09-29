@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   ChevronDown,
-  ShieldCheck,
   Box,
   Shield,
   Layers,
@@ -109,20 +108,16 @@ export const Navbar: React.FC = () => {
         {/* Brand / Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div
+            <img
+              src="/logo.png"
+              alt="SentinelKey"
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #1D63ED 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(107, 77, 230, 0.4)',
+                width: '32px',
+                height: '37px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(139, 92, 246, 0.45))',
               }}
-            >
-              <ShieldCheck size={22} color="#ffffff" />
-            </div>
+            />
             <span style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>
               Sentinel<span style={{ color: '#8B5CF6' }}>Key</span>
             </span>

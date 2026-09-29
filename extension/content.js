@@ -49,10 +49,12 @@
       ? `<ul class="sk-rules-list">${rules.map((r) => `<li><strong>${escapeHtml(r.ruleId || r.name)}</strong>: ${escapeHtml(r.description || r.score + ' pts')}</li>`).join('')}</ul>`
       : '<p>Threat classified by SentinelKey heuristics engine.</p>';
 
+    const logoUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL ? chrome.runtime.getURL('icons/logo.png') : '';
+
     overlay.innerHTML = `
       <div id="sentinelkey-modal-card">
         <div class="sk-header">
-          <div class="sk-shield-icon">⚠️</div>
+          ${logoUrl ? `<img class="sk-shield-logo" src="${logoUrl}" alt="SentinelKey" />` : '<div class="sk-shield-icon">⚠️</div>'}
           <div class="sk-title-box">
             <h3>SentinelKey Threat Defense</h3>
             <p>${escapeHtml(title || 'High-Risk Action Blocked')}</p>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Shield,
   Activity,
   FileText,
   AlertOctagon,
@@ -27,9 +26,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="sidebar">
       {/* Brand Header */}
       <div className="brand">
-        <div className="brand-icon">
-          <Shield size={20} />
-        </div>
+        <img
+          src="/logo.png"
+          alt="SentinelKey"
+          style={{
+            width: 32,
+            height: 37,
+            objectFit: 'contain',
+            flexShrink: 0,
+            filter: 'drop-shadow(0 2px 8px rgba(139, 92, 246, 0.45))',
+          }}
+        />
         <div>
           <div className="brand-name">SentinelKey</div>
           <span className="brand-tag">SOC Stack v0.1</span>

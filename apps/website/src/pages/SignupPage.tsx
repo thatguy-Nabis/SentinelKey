@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 
 export const SignupPage: React.FC = () => {
@@ -60,20 +60,18 @@ export const SignupPage: React.FC = () => {
       >
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #6B4DE6 100%)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '1rem',
-            }}
-          >
-            <ShieldCheck size={24} color="#ffffff" />
-          </div>
+          <Link to="/" style={{ display: 'inline-block', marginBottom: '1rem' }}>
+            <img
+              src="/logo.png"
+              alt="SentinelKey Logo"
+              style={{
+                width: '56px',
+                height: '65px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 4px 16px rgba(139, 92, 246, 0.45))',
+              }}
+            />
+          </Link>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F8FAFC' }}>
             Create an account
           </h2>

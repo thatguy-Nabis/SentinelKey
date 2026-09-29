@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage } from '../../services/api';
-import { Shield, Lock, Mail, KeyRound, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import { Lock, Mail, KeyRound, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 export const AuthModal: React.FC = () => {
@@ -94,22 +94,17 @@ export const AuthModal: React.FC = () => {
       >
         {/* Header Icon */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div
+          <img
+            src="/logo.png"
+            alt="SentinelKey"
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 14,
-              background: 'linear-gradient(135deg, var(--color-indigo), var(--color-cyan))',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: 'var(--shadow-neon)',
+              width: 56,
+              height: 65,
+              objectFit: 'contain',
               marginBottom: 12,
+              filter: 'drop-shadow(0 4px 16px rgba(139, 92, 246, 0.45))',
             }}
-          >
-            <Shield size={28} />
-          </div>
+          />
           <h2 style={{ fontSize: isMobile ? '1.3rem' : '1.4rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
             {pendingMfaToken ? 'Two-Factor Authentication' : mode === 'login' ? 'SentinelKey Access' : 'Create Account'}
           </h2>

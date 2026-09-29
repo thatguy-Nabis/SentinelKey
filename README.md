@@ -1,5 +1,9 @@
 # SentinelKey
 
+<p align="center">
+  <img src="media/logo.png" alt="SentinelKey Logo" width="130" />
+</p>
+
 Authentication, Encryption, Intrusion Detection, and Compliance in One Stack.
 
 A **self-hosted security stack**. Every security-critical algorithm (JWT/RBAC, MFA, encryption, intrusion-detection heuristics, ML anomaly detection, classification rules) is hand-built in this repo — no third-party auth/security SaaS. External services are only used for peripheral delivery (payment gateways, optional alert channels).

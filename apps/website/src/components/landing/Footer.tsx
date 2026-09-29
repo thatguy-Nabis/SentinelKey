@@ -15,6 +15,32 @@ export const Footer: React.FC = () => {
       }}
     >
       <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+        {/* Brand Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3rem', paddingBottom: '2rem', borderBottom: '1px solid #1E2638' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img
+              src="/logo.png"
+              alt="SentinelKey"
+              style={{
+                width: '32px',
+                height: '37px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(139, 92, 246, 0.45))',
+              }}
+            />
+            <div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>
+                Sentinel<span style={{ color: '#8B5CF6' }}>Key</span>
+              </span>
+              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Zero-Trust Security, Enclaves & Telemetry</div>
+            </div>
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#94A3B8' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+            <span>All Systems Operational</span>
+          </div>
+        </div>
+
         {/* Navigation Grid (6 columns matching Image 1) */}
         <div
           style={{

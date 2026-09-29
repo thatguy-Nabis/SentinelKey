@@ -8,7 +8,6 @@ import {
   Lock,
   Users,
   LogOut,
-  Shield,
   Globe,
   ExternalLink,
   ChevronRight,
@@ -51,9 +50,17 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         {/* Header */}
         <div className="mobile-drawer-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="brand-icon" style={{ width: 32, height: 32, borderRadius: 8 }}>
-              <Shield size={18} />
-            </div>
+            <img
+              src="/logo.png"
+              alt="SentinelKey"
+              style={{
+                width: 30,
+                height: 35,
+                objectFit: 'contain',
+                flexShrink: 0,
+                filter: 'drop-shadow(0 2px 8px rgba(139, 92, 246, 0.45))',
+              }}
+            />
             <div>
               <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>SentinelKey</div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>SOC Mobile Console</div>

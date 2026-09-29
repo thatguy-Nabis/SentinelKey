@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShieldCheck,
   HelpCircle,
   Bell,
   Moon,
@@ -76,19 +75,16 @@ export const HubHeader: React.FC = () => {
       {/* Left: Brand + Breadcrumb Badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
         <Link to="/app" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <div
+          <img
+            src="/logo.png"
+            alt="SentinelKey"
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '7px',
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #6B4DE6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: '28px',
+              height: '33px',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 2px 8px rgba(139, 92, 246, 0.45))',
             }}
-          >
-            <ShieldCheck size={20} color="#ffffff" />
-          </div>
+          />
           <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>
             Sentinel<span style={{ color: '#8B5CF6' }}>Key</span>
           </span>

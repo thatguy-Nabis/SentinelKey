@@ -11,7 +11,7 @@ import { MfaSettingsView } from './components/settings/MfaSettingsView';
 import { AdminView } from './components/admin/AdminView';
 import { AuthModal } from './components/auth/AuthModal';
 import * as api from './services/api';
-import { Shield, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const DashboardContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -55,9 +55,16 @@ const DashboardContent: React.FC = () => {
           textAlign: 'center',
         }}
       >
-        <div className="brand-icon" style={{ width: 48, height: 48, borderRadius: 12 }}>
-          <Shield size={26} />
-        </div>
+        <img
+          src="/logo.png"
+          alt="SentinelKey"
+          style={{
+            width: 48,
+            height: 56,
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 4px 16px rgba(139, 92, 246, 0.45))',
+          }}
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
           <Loader2 size={16} className="animate-spin" />
           <span>Initializing SentinelKey Security Operations Console...</span>

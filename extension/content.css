@@ -58,6 +58,15 @@
   color: #ef4444;
   font-size: 20px;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+.sk-shield-logo {
+  width: 36px;
+  height: 42px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(239, 68, 68, 0.4));
 }
 
 .sk-title-box h3 {
