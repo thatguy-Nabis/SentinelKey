@@ -12,6 +12,7 @@ export interface IAlertDocument extends Document {
   severity: AlertSeverity;
   status: AlertStatus;
   userId?: string;
+  domainId?: string;
   ip: string;
   triggerEventIds: string[];
   metadata?: Record<string, unknown>;
@@ -52,6 +53,11 @@ const alertSchema = new Schema<IAlertDocument>(
       index: true,
     },
     userId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    domainId: {
       type: String,
       index: true,
       sparse: true,

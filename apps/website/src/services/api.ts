@@ -12,10 +12,22 @@ import type {
   IDomainProbeResult,
 } from '@sentinelkey/shared-types';
 
-let accessToken: string | null = null;
+const ACCESS_TOKEN_STORAGE_KEY = 'sentinelkey_hub_access_token';
+const REFRESH_TOKEN_STORAGE_KEY = 'sentinelkey_hub_refresh_token';
+
+let accessToken: string | null = (typeof sessionStorage !== 'undefined'
+  ? sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)
+  : null);
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (typeof sessionStorage !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+    } else {
+      sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+    }
+  }
 }
 
 export function getAccessToken(): string | null {
@@ -23,14 +35,14 @@ export function getAccessToken(): string | null {
 }
 
 export function getStoredRefreshToken(): string | null {
-  return localStorage.getItem('sentinelkey_hub_refresh_token');
+  return localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
 }
 
 export function setStoredRefreshToken(token: string | null): void {
   if (token) {
-    localStorage.setItem('sentinelkey_hub_refresh_token', token);
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
   } else {
-    localStorage.removeItem('sentinelkey_hub_refresh_token');
+    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
   }
 }
 
@@ -78,10 +90,11 @@ async function request<T>(
   options: RequestInit = {},
   isRetry = false,
 ): Promise<T> {
+  const currentToken = accessToken;
   const headers = new Headers(options.headers || {});
 
-  if (accessToken && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
+  if (currentToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${currentToken}`);
   }
 
   if (options.body && !headers.has('Content-Type') && typeof options.body === 'string') {
@@ -92,6 +105,10 @@ async function request<T>(
 
   // Handle automatic silent refresh on 401
   if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh')) {
+    // If the token changed while our request was in flight, retry with new token immediately
+    if (accessToken && accessToken !== currentToken) {
+      return request<T>(url, options, true);
+    }
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       return request<T>(url, options, true);
@@ -110,6 +127,13 @@ async function request<T>(
 
 export const api = {
   // Auth endpoints
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return request<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
   async login(email: string, password: string): Promise<IAuthResponse> {
     const res = await request<IAuthResponse>('/auth/login', {
       method: 'POST',

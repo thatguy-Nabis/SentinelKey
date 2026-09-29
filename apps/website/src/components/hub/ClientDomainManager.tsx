@@ -4,10 +4,8 @@ import {
   Globe,
   Plus,
   Radio,
-  Activity,
   CheckCircle2,
   AlertTriangle,
-  XCircle,
   Copy,
   Check,
   ExternalLink,
@@ -17,9 +15,7 @@ import {
   Code2,
   Eye,
   EyeOff,
-  Server,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import type { IClientDomain, ISubscription } from '@sentinelkey/shared-types';
 import { api, getErrorMessage } from '../../services/api.js';
@@ -476,7 +472,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                         boxShadow: isHealthy ? '0 0 6px #10B981' : isOffline ? '0 0 6px #EF4444' : 'none',
                       }}
                     />
-                    <span>{domain.healthStatus.toUpperCase()}</span>
+                    <span>{(domain.healthStatus ?? 'unverified').toUpperCase()}</span>
                   </div>
                 </div>
 
@@ -564,22 +560,23 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {isRevealed
+                      {isRevealed && domain.apiKey
                         ? domain.apiKey
-                        : `${domain.apiKey.substring(0, 12)}••••••••••••••••••••••••`}
+                        : domain.siteKeyPrefix || (domain.apiKey ? `${domain.apiKey.substring(0, 12)}••••••••••••••••••••••••` : 'sk_live_••••••••••••••••••••••••')}
                     </code>
                     <button
-                      onClick={() => copyToClipboard(domain.apiKey, domain._id)}
+                      onClick={() => domain.apiKey && copyToClipboard(domain.apiKey, domain._id)}
+                      disabled={!domain.apiKey}
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: isCopied ? '#10B981' : '#94A3B8',
-                        cursor: 'pointer',
+                        color: isCopied ? '#10B981' : domain.apiKey ? '#94A3B8' : '#475569',
+                        cursor: domain.apiKey ? 'pointer' : 'default',
                         padding: '2px',
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      title="Copy API key"
+                      title={domain.apiKey ? 'Copy API key' : 'Site key hidden after generation'}
                     >
                       {isCopied ? <Check size={14} /> : <Copy size={14} />}
                     </button>
@@ -608,7 +605,7 @@ export const ClientDomainManager: React.FC<ClientDomainManagerProps> = ({ subscr
                     <br />
                     <div><span style={{ color: '#60A5FA' }}>const</span> sentinel = <span style={{ color: '#FCD34D' }}>createSentinelKeyClient</span>(&#123;</div>
                     <div style={{ paddingLeft: '1rem' }}>baseUrl: <span style={{ color: '#34D399' }}>&apos;http://localhost:4000&apos;</span>,</div>
-                    <div style={{ paddingLeft: '1rem' }}>apiKey: <span style={{ color: '#34D399' }}>&apos;{domain.apiKey}&apos;</span>,</div>
+                    <div style={{ paddingLeft: '1rem' }}>apiKey: <span style={{ color: '#34D399' }}>&apos;{domain.apiKey || domain.siteKeyPrefix || 'YOUR_SITE_KEY'}&apos;</span>,</div>
                     <div style={{ paddingLeft: '1rem' }}>domainUrl: <span style={{ color: '#34D399' }}>&apos;{domain.domainUrl}&apos;</span>,</div>
                     <div>&#125;);</div>
                   </div>

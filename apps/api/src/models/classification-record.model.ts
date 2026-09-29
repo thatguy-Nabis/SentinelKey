@@ -55,6 +55,11 @@ const ClassificationRecordSchema = new Schema<IClassificationRecordDocument>(
       type: String,
       index: true,
     },
+    domainId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
     metadata: {
       type: Schema.Types.Mixed,
       default: {},

@@ -176,3 +176,26 @@ export async function mfaDisable(req: Request, res: Response, next: NextFunction
   }
 }
 
+/**
+ * POST /auth/change-password
+ */
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user?.sub;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const clientIp = getRequestContext(req).ip || '127.0.0.1';
+    const result = await authService.changePassword(userId, currentPassword, newPassword, clientIp);
+    sendSuccess(res, result, 200, result.message);
+  } catch (err) {
+    next(err);
+  }
+}
+

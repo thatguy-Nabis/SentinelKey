@@ -53,10 +53,11 @@ export async function getActivePolicy(
 
 export async function recordAndAlert(
   result: IClassificationResult,
-  options?: { ip?: string; userId?: string }
+  options?: { ip?: string; userId?: string; domainId?: string }
 ): Promise<void> {
   const ip = options?.ip || '127.0.0.1';
   const userId = options?.userId;
+  const domainId = result.domainId || options?.domainId;
 
   // 1. Audit trail: persist record (failsafe, only if DB connected)
   if (mongoose.connection.readyState === 1) {
@@ -65,14 +66,15 @@ export async function recordAndAlert(
         subjectType: result.subjectType,
         subjectId: result.subjectId,
         verdict: result.verdict,
-      severity: result.severity,
-      score: result.score,
-      matchedRules: result.matchedRules,
-      policyVersion: result.policyVersion,
-      policyId: result.policyId,
-      metadata: result.metadata ?? {},
-      timestamp: result.timestamp,
-    });
+        severity: result.severity,
+        score: result.score,
+        matchedRules: result.matchedRules,
+        policyVersion: result.policyVersion,
+        policyId: result.policyId,
+        domainId,
+        metadata: result.metadata ?? {},
+        timestamp: result.timestamp,
+      });
     } catch (err) {
       console.error('[CLASSIFICATION_AUDIT_ERROR] Failed to record classification:', err);
     }
@@ -96,6 +98,7 @@ export async function recordAndAlert(
         rule: alertRule,
         severity: result.severity,
         userId,
+        domainId,
         ip,
         triggerEventIds: [result.subjectId],
         metadata: {

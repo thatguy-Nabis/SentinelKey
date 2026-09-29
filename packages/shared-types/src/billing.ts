@@ -36,9 +36,26 @@ export interface ISubscription {
   updatedAt?: string | Date;
 }
 
+export type InvoiceType = 'subscription' | 'usage';
+
+export interface IUsageInvoiceLineItem {
+  tier?: string;
+  units?: number;
+  ratePaisa?: number;
+  amountPaisa: number;
+  description: string;
+}
+
 export interface IInvoice {
   id: string;
   userId: string;
+  type?: InvoiceType;
+  domainId?: string;
+  domainOrigin?: string;
+  periodStart?: string | Date;
+  periodEnd?: string | Date;
+  lineItems?: IUsageInvoiceLineItem[];
+  dueDate?: string | Date;
   amountPaisa: number;
   amountNpr: number;
   currency: string;

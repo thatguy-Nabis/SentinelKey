@@ -74,6 +74,8 @@ export type {
   BillingPlanId,
   PaymentStatus,
   SubscriptionStatus,
+  InvoiceType,
+  IUsageInvoiceLineItem,
   IBillingPlan,
   ISubscription,
   IInvoice,
@@ -86,8 +88,20 @@ export type {
 export type {
   DomainEnvironment,
   DomainHealthStatus,
+  DomainStatus,
+  DomainSuspensionReason,
+  IDomain,
+  ICreateDomainRequest,
+  ICreateDomainResponse,
+  IRotateKeyResponse,
+  IUpdateDomainRequest,
+  IKeepDomainsRequest,
   IClientDomain,
   IRegisterDomainRequest,
   IDomainProbeResult,
   IDomainTelemetryPayload,
 } from './domain.js';
+
+// Metering & Usage types
+export * from './metering.js';
+

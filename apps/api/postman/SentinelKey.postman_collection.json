@@ -25,6 +25,16 @@
       "key": "mfaToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "domainId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "siteKey",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -640,6 +650,487 @@
               "raw": "{{baseUrl}}/classify/history?page=1&limit=20",
               "host": ["{{baseUrl}}"],
               "path": ["classify", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 10a - Domain Registry",
+      "item": [
+        {
+          "name": "Register Domain",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.domain) {",
+                  "  pm.collectionVariables.set('domainId', res.data.domain._id || res.data.domain.id);",
+                  "}",
+                  "if (res.data && res.data.siteKey) {",
+                  "  pm.collectionVariables.set('siteKey', res.data.siteKey);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Local Test Client\",\n  \"host\": \"localhost\",\n  \"port\": 3000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains"]
+            }
+          }
+        },
+        {
+          "name": "List Domains",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains"]
+            }
+          }
+        },
+        {
+          "name": "Get Domain by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Domain Label",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Updated Test Storefront\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}"]
+            }
+          }
+        },
+        {
+          "name": "Rotate Site Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.siteKey) {",
+                  "  pm.collectionVariables.set('siteKey', res.data.siteKey);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}/rotate-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}", "rotate-key"]
+            }
+          }
+        },
+        {
+          "name": "Suspend Domain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}/suspend",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}", "suspend"]
+            }
+          }
+        },
+        {
+          "name": "Reactivate Domain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}/reactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}", "reactivate"]
+            }
+          }
+        },
+        {
+          "name": "Keep Domains On Downgrade",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domainIds\": [\"{{domainId}}\"],\n  \"targetPlanId\": \"free\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/domains/keep",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "keep"]
+            }
+          }
+        },
+        {
+          "name": "Delete Domain",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["domains", "{{domainId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 10b - Metering & Quotas",
+      "item": [
+        {
+          "name": "Get Billing Usage Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "usage"]
+            }
+          }
+        },
+        {
+          "name": "Get Domain Daily Usage Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing/usage/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "usage", "domains", "{{domainId}}"]
+            }
+          }
+        },
+        {
+          "name": "Classify Event (Site-Key Authenticated & Metered)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Site-Key",
+                "value": "{{siteKey}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": {\n    \"type\": \"AUTH_LOGIN_FAILED\",\n    \"ip\": \"198.51.100.42\",\n    \"userId\": \"target-account\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/classify/event",
+              "host": ["{{baseUrl}}"],
+              "path": ["classify", "event"]
+            }
+          }
+        },
+        {
+          "name": "Query Security Events by Domain ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logs?domainId={{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["logs"],
+              "query": [
+                {
+                  "key": "domainId",
+                  "value": "{{domainId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Query Alerts by Domain ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts?domainId={{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"],
+              "query": [
+                {
+                  "key": "domainId",
+                  "value": "{{domainId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 10c - Usage Invoicing & Payment",
+      "item": [
+        {
+          "name": "Get Accrued Overage Estimate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing/usage/estimate",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "usage", "estimate"]
+            }
+          }
+        },
+        {
+          "name": "Close Billing Period",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('usageInvoiceId', res.data[0]._id || res.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/usage/close",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "usage", "close"]
+            }
+          }
+        },
+        {
+          "name": "List Usage Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing/invoices?type=usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "invoices"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "usage"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Checkout Usage Invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.pidx) {",
+                  "  pm.collectionVariables.set('usagePidx', res.data.pidx);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Test User\",\n  \"phone\": \"9800000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/invoices/{{usageInvoiceId}}/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "invoices", "{{usageInvoiceId}}", "checkout"]
+            }
+          }
+        },
+        {
+          "name": "Verify Usage Invoice Payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/billing/verify?pidx={{usagePidx}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["billing", "verify"],
+              "query": [
+                {
+                  "key": "pidx",
+                  "value": "{{usagePidx}}"
+                }
+              ]
             }
           }
         }

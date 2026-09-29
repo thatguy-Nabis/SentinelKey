@@ -60,10 +60,11 @@ export class FileClassifierService {
     mimeType?: string;
     sha256?: string;
     userId?: string;
+    domainId?: string;
     ip?: string;
     policyVersion?: number;
   }): Promise<IClassificationResult> {
-    const { filename, mimeType, userId, ip = '127.0.0.1', policyVersion } = params;
+    const { filename, mimeType, userId, domainId, ip = '127.0.0.1', policyVersion } = params;
 
     let buffer = params.buffer;
     if (!buffer && params.contentBase64) {
@@ -198,6 +199,7 @@ export class FileClassifierService {
       matchedRules,
       policyVersion: version,
       policyId,
+      domainId,
       timestamp: new Date(),
       metadata: {
         filename,
@@ -208,7 +210,7 @@ export class FileClassifierService {
     };
 
     // Audit log & trigger IDS alert if not safe
-    await recordAndAlert(result, { ip, userId });
+    await recordAndAlert(result, { ip, userId, domainId });
 
     return result;
   }

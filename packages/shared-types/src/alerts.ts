@@ -25,6 +25,7 @@ export interface IAlert {
   severity: AlertSeverity;
   status: AlertStatus;
   userId?: string;
+  domainId?: string;
   ip: string;
   triggerEventIds: string[];
   metadata?: Record<string, unknown>;

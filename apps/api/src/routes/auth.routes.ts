@@ -57,4 +57,16 @@ router.post(
   authCtrl.mfaDisable,
 );
 
+// POST /auth/change-password — authenticated, rate-limited
+router.post(
+  '/change-password',
+  rateLimiter,
+  authenticate,
+  validate([
+    { field: 'currentPassword', type: 'string', required: true },
+    { field: 'newPassword', type: 'string', required: true, minLength: 8, maxLength: 128 },
+  ]),
+  authCtrl.changePassword,
+);
+
 export default router;

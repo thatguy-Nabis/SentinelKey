@@ -9,7 +9,20 @@ import type { AlertStatus, AlertSeverity, HeuristicRule } from '@sentinelkey/sha
  */
 export async function listAlerts(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { page, limit, status, severity, rule, ip, userId } = req.query;
+    const { page, limit, status, severity, rule, ip, userId, domainId } = req.query;
+
+    const isSecurityStaff = Boolean(
+      req.user?.roles?.includes('admin') || req.user?.roles?.includes('analyst'),
+    );
+    let effectiveDomainId = domainId as string | undefined;
+    let effectiveUserId = userId as string | undefined;
+
+    if (req.domain) {
+      effectiveDomainId = req.domain.id || (req.domain as unknown as { _id?: string })._id?.toString();
+      effectiveUserId = undefined;
+    } else if (!isSecurityStaff) {
+      effectiveUserId = req.user?.sub;
+    }
 
     const result = await getAlerts({
       page: page ? Number(page) : undefined,
@@ -18,7 +31,8 @@ export async function listAlerts(req: Request, res: Response, next: NextFunction
       severity: severity as AlertSeverity | undefined,
       rule: rule as HeuristicRule | undefined,
       ip: ip as string | undefined,
-      userId: userId as string | undefined,
+      userId: effectiveUserId,
+      domainId: effectiveDomainId,
     });
 
     res.status(200).json(result);

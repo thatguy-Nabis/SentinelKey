@@ -8,10 +8,16 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  Loader2,
+  Lock,
 } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useMediaQuery';
+import { BottomSheet } from '../common/BottomSheet';
+import { TapToCopy } from '../common/TapToCopy';
 
 export const MfaSettingsView: React.FC = () => {
   const { user, refreshProfile } = useAuth();
+  const isMobile = useIsMobile(768);
 
   const [setupData, setSetupData] = useState<IMfaSetupResponse | null>(null);
   const [verifyCode, setVerifyCode] = useState('');
@@ -88,9 +94,17 @@ export const MfaSettingsView: React.FC = () => {
   return (
     <div className="content-body" style={{ maxWidth: 840 }}>
       {/* Status Card */}
-      <div className="glass-panel" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className={isMobile ? 'mobile-sec-card' : 'glass-panel'} style={{ marginBottom: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            justifyContent: 'space-between',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div
               style={{
                 width: 48,
@@ -101,26 +115,28 @@ export const MfaSettingsView: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
               {isMfaActive ? <ShieldCheck size={28} /> : <ShieldAlert size={28} />}
             </div>
             <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 600 }}>
-                {isMfaActive ? 'Two-Factor Authentication is Enabled' : 'Two-Factor Authentication is Inactive'}
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.15rem', fontWeight: 600 }}>
+                {isMfaActive ? 'Two-Factor Auth Active' : 'Two-Factor Auth Inactive'}
               </h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 {isMfaActive
-                  ? 'Your account is secured with RFC 6238 TOTP (Google Authenticator / Authy).'
+                  ? 'Your account is secured with RFC 6238 TOTP (Google Authenticator / 1Password).'
                   : 'Add a second security layer using time-based one-time password (TOTP) codes.'}
               </p>
             </div>
           </div>
 
-          <div>
+          <div style={{ width: isMobile ? '100%' : 'auto' }}>
             {isMfaActive ? (
               <button
-                className="btn btn-danger btn-sm"
+                className="btn btn-danger"
+                style={{ width: isMobile ? '100%' : 'auto', minHeight: 44 }}
                 onClick={() => {
                   setShowDisableModal(true);
                   setError(null);
@@ -130,11 +146,13 @@ export const MfaSettingsView: React.FC = () => {
               </button>
             ) : !setupData ? (
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary"
+                style={{ width: isMobile ? '100%' : 'auto', minHeight: 44 }}
                 onClick={handleStartSetup}
                 disabled={isLoading}
               >
-                Set Up Two-Factor Auth
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+                <span>Set Up Two-Factor Auth</span>
               </button>
             ) : null}
           </div>
@@ -157,7 +175,7 @@ export const MfaSettingsView: React.FC = () => {
             gap: 10,
           }}
         >
-          <AlertTriangle size={18} />
+          <AlertTriangle size={18} style={{ flexShrink: 0 }} />
           <span>{error}</span>
         </div>
       )}
@@ -177,19 +195,27 @@ export const MfaSettingsView: React.FC = () => {
             gap: 10,
           }}
         >
-          <Check size={18} />
+          <Check size={18} style={{ flexShrink: 0 }} />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Setup Wizard (when setup initiated) */}
       {setupData && !isMfaActive && (
-        <div className="glass-panel" style={{ border: '1px solid var(--border-cyan)' }}>
+        <div className="glass-panel" style={{ border: '1px solid var(--border-cyan)', padding: isMobile ? '16px' : '24px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 16 }}>
             Set Up Your Authenticator App
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'center', marginBottom: 24 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr',
+              gap: 20,
+              alignItems: 'center',
+              marginBottom: 24,
+            }}
+          >
             {/* QR Code */}
             <div
               style={{
@@ -198,6 +224,7 @@ export const MfaSettingsView: React.FC = () => {
                 borderRadius: 12,
                 width: 180,
                 height: 180,
+                margin: isMobile ? '0 auto' : undefined,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -206,61 +233,73 @@ export const MfaSettingsView: React.FC = () => {
               <img src={setupData.qrCode} alt="TOTP QR Code" style={{ width: '100%', height: '100%' }} />
             </div>
 
-            {/* Instructions */}
+            {/* Instructions & Secret Key */}
             <div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 10 }}>
                 1. Scan the QR code using Google Authenticator, 1Password, Authy, or any TOTP app.
               </p>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
                 Or enter this secret key manually into your app:
               </p>
-              <div
-                className="font-mono"
-                style={{
-                  background: 'var(--bg-app)',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--color-cyan)',
-                  fontSize: '0.9rem',
-                  display: 'inline-block',
-                  letterSpacing: '0.05em',
-                  marginBottom: 16,
-                }}
-              >
-                {setupData.secret}
+              <div style={{ marginBottom: 16 }}>
+                <TapToCopy value={setupData.secret} label="Secret Key" />
               </div>
             </div>
           </div>
 
           {/* Backup Recovery Codes */}
-          <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-app)', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              background: 'var(--bg-app)',
+              borderRadius: 8,
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 10,
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                 One-Time Backup Recovery Codes
               </span>
               <button
+                type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleCopyBackupCodes}
+                style={{ minHeight: 36 }}
               >
                 {copiedCodes ? <Check size={14} style={{ color: 'var(--color-emerald)' }} /> : <Copy size={14} />}
-                {copiedCodes ? 'Copied to Clipboard' : 'Copy All Codes'}
+                <span>{copiedCodes ? 'Copied All' : 'Copy All Codes'}</span>
               </button>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>
               Save these codes in a secure location. Each recovery code can only be used once if you lose access to your authenticator.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                gap: 8,
+              }}
+            >
               {setupData.backupCodes.map((code, idx) => (
                 <div
                   key={idx}
                   className="font-mono"
                   style={{
                     background: 'var(--bg-card)',
-                    padding: '6px 8px',
-                    borderRadius: 4,
+                    padding: '8px',
+                    borderRadius: 6,
                     textAlign: 'center',
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
@@ -270,83 +309,149 @@ export const MfaSettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Confirmation Input */}
-          <form onSubmit={handleConfirmSetup} style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+          {/* Confirmation Input Form */}
+          <form
+            onSubmit={handleConfirmSetup}
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 12,
+              alignItems: isMobile ? 'stretch' : 'flex-end',
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label className="form-label">Enter 6-Digit Code to Confirm & Activate</label>
               <input
                 type="text"
                 className="form-input font-mono"
+                style={{
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.15em',
+                  textAlign: 'center',
+                  minHeight: 46,
+                }}
                 placeholder="000000"
                 maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={verifyCode}
-                onChange={e => setVerifyCode(e.target.value)}
+                onChange={(e) => setVerifyCode(e.target.value)}
                 required
               />
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isLoading || verifyCode.trim().length !== 6}
-            >
-              Confirm & Activate
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setSetupData(null)}
-            >
-              Cancel
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: isMobile ? 1 : undefined, minHeight: 46 }}
+                onClick={() => setSetupData(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ flex: isMobile ? 2 : undefined, minHeight: 46 }}
+                disabled={isLoading || verifyCode.trim().length !== 6}
+              >
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                <span>Confirm & Activate</span>
+              </button>
+            </div>
           </form>
         </div>
       )}
 
-      {/* Disable Modal */}
+      {/* Disable MFA Modal / Bottom Sheet */}
       {showDisableModal && (
-        <div className="modal-overlay" onClick={() => setShowDisableModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: 10, color: 'var(--color-rose)' }}>
-              Disable Two-Factor Authentication
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-              Disabling MFA reduces account security. Enter your account password to confirm.
-            </p>
-
+        isMobile ? (
+          <BottomSheet
+            isOpen={showDisableModal}
+            onClose={() => setShowDisableModal(false)}
+            title="Disable Two-Factor Authentication"
+            subtitle="Disabling MFA reduces account security. Enter password to confirm."
+          >
             <form onSubmit={handleDisableMfa}>
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: 20 }}>
                 <label className="form-label">Account Password</label>
                 <input
                   type="password"
                   className="form-input"
+                  style={{ minHeight: 46 }}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                   value={disablePassword}
-                  onChange={e => setDisablePassword(e.target.value)}
+                  onChange={(e) => setDisablePassword(e.target.value)}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                  onClick={() => setShowDisableModal(false)}
-                >
-                  Cancel
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button
                   type="submit"
                   className="btn btn-danger"
-                  style={{ flex: 1 }}
+                  style={{ width: '100%', minHeight: 48 }}
                   disabled={isLoading || !disablePassword}
                 >
-                  Confirm Disable
+                  {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  <span>Confirm Disable 2FA</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ width: '100%', minHeight: 44 }}
+                  onClick={() => setShowDisableModal(false)}
+                >
+                  Keep 2FA Active (Cancel)
                 </button>
               </div>
             </form>
+          </BottomSheet>
+        ) : (
+          <div className="modal-overlay" onClick={() => setShowDisableModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: 10, color: 'var(--color-rose)' }}>
+                Disable Two-Factor Authentication
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Disabling MFA reduces account security. Enter your account password to confirm.
+              </p>
+
+              <form onSubmit={handleDisableMfa}>
+                <div className="form-group">
+                  <label className="form-label">Account Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="••••••••"
+                    required
+                    value={disablePassword}
+                    onChange={(e) => setDisablePassword(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                    onClick={() => setShowDisableModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-danger"
+                    style={{ flex: 1 }}
+                    disabled={isLoading || !disablePassword}
+                  >
+                    Confirm Disable
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );

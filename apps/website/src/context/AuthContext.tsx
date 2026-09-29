@@ -2,6 +2,17 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { IUserProfile } from '@sentinelkey/shared-types';
 import { api, refreshAccessToken, setAccessToken, setStoredRefreshToken } from '../services/api.js';
 
+const USER_STORAGE_KEY = 'sentinelkey_hub_user';
+
+function getInitialUser(): IUserProfile | null {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 interface AuthContextType {
   user: IUserProfile | null;
   loading: boolean;
@@ -14,17 +25,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<IUserProfile | null>(null);
+  const [user, setUser] = useState<IUserProfile | null>(getInitialUser);
   const [loading, setLoading] = useState<boolean>(true);
 
   const refreshUser = useCallback(async () => {
     try {
       const profile = await api.getMe();
       setUser(profile);
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(profile));
+      } catch {}
     } catch {
       setUser(null);
       setAccessToken(null);
       setStoredRefreshToken(null);
+      try {
+        localStorage.removeItem(USER_STORAGE_KEY);
+      } catch {}
     }
   }, []);
 
@@ -36,6 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setAccessToken(null);
         setStoredRefreshToken(null);
+        setUser(null);
+        try {
+          localStorage.removeItem(USER_STORAGE_KEY);
+        } catch {}
       }
       setLoading(false);
     };
@@ -56,6 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     await api.logout();
     setUser(null);
+    try {
+      localStorage.removeItem(USER_STORAGE_KEY);
+    } catch {}
   };
 
   return (

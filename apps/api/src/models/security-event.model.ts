@@ -8,6 +8,7 @@ import type {
 export interface ISecurityEventDocument extends Document {
   type: SecurityEventType;
   userId?: string;
+  domainId?: string;
   ip: string;
   timestamp: Date;
   severity: EventSeverity;
@@ -24,6 +25,11 @@ const securityEventSchema = new Schema<ISecurityEventDocument>(
       index: true,
     },
     userId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    domainId: {
       type: String,
       index: true,
       sparse: true,

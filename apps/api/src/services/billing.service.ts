@@ -2,11 +2,9 @@ import mongoose from 'mongoose';
 import {
   BillingPlanId,
   IBillingPlan,
-  IInvoice,
-  ISubscription,
   IVerifyPaymentResponse,
 } from '@sentinelkey/shared-types';
-import { BILLING_PLANS, getAllPlans, getPlanById } from '../config/plans.js';
+import { getAllPlans, getPlanById } from '../config/plans.js';
 import { env } from '../config/env.js';
 import { Subscription, ISubscriptionDocument } from '../models/subscription.model.js';
 import { Invoice, IInvoiceDocument } from '../models/invoice.model.js';
@@ -123,6 +121,26 @@ export class BillingService {
 
     // 2. Idempotency guard: If order is already completed for this pidx, do not re-fulfill
     if (invoice && invoice.status === 'Completed') {
+      if (invoice.type === 'usage') {
+        return {
+          success: true,
+          status: 'Completed',
+          transactionId: invoice.transactionId,
+          amountPaisa: invoice.amountPaisa,
+          message: 'Usage invoice already verified and paid',
+          subscription: {
+            id: sub._id.toString(),
+            userId: sub.userId.toString(),
+            planId: sub.planId,
+            status: sub.status,
+            khaltiPidx: sub.khaltiPidx,
+            currentPeriodStart: sub.currentPeriodStart,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+          },
+        };
+      }
+
       return {
         success: true,
         status: 'Completed',
@@ -182,6 +200,30 @@ export class BillingService {
         await invoice.save();
       }
 
+      // If this is a usage invoice, reactivate domain if suspended for non-payment
+      if (invoice && invoice.type === 'usage') {
+        const { usageInvoicingService } = await import('./usage-invoicing.service.js');
+        await usageInvoicingService.onUsageInvoicePaid(invoice);
+
+        return {
+          success: true,
+          status: 'Completed',
+          transactionId: verification.transactionId,
+          amountPaisa: verification.amountPaisa ?? invoice.amountPaisa,
+          message: 'Usage invoice payment verified successfully',
+          subscription: {
+            id: sub._id.toString(),
+            userId: sub.userId.toString(),
+            planId: sub.planId,
+            status: sub.status,
+            khaltiPidx: sub.khaltiPidx,
+            currentPeriodStart: sub.currentPeriodStart,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+          },
+        };
+      }
+
       const planId = (invoice?.planId as BillingPlanId) || 'pro';
       sub.planId = planId;
       sub.status = 'active';
@@ -232,7 +274,6 @@ export class BillingService {
 
   /** Cancel active subscription */
   async cancelSubscription(userId: string): Promise<ISubscriptionDocument> {
-    const userObjectId = new mongoose.Types.ObjectId(userId);
     const sub = await this.getSubscription(userId);
 
     sub.cancelAtPeriodEnd = true;
@@ -246,10 +287,66 @@ export class BillingService {
     return sub;
   }
 
-  /** List billing invoices for a user */
-  async listInvoices(userId: string): Promise<IInvoiceDocument[]> {
+  /** Initiate checkout with Khalti (or mock in dev) for a usage invoice */
+  async checkoutUsageInvoice(
+    userId: string,
+    invoiceId: string,
+    userEmail: string,
+    customerDetails?: { phone?: string; customerName?: string },
+  ): Promise<{ pidx: string; url: string; orderId: string; expiresAt?: string; expiresIn?: number }> {
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    return Invoice.find({ userId: userObjectId }).sort({ createdAt: -1 }).exec();
+    const invoiceObjectId = new mongoose.Types.ObjectId(invoiceId);
+
+    const invoice = await Invoice.findOne({
+      _id: invoiceObjectId,
+      userId: userObjectId,
+      type: 'usage',
+    });
+
+    if (!invoice) {
+      throw new Error('Usage invoice not found');
+    }
+
+    if (invoice.status === 'Completed') {
+      throw new Error('Invoice is already paid');
+    }
+
+    const provider = getPaymentProvider();
+    const returnUrl = `${env.WEBSITE_URL}/app/billing?invoiceId=${invoice._id.toString()}`;
+    const checkoutResult = await provider.initiateCheckout({
+      planId: (invoice.planId as BillingPlanId) || 'pro',
+      amountPaisa: invoice.amountPaisa,
+      orderName: `SentinelKey Usage — ${invoice.domainOrigin || 'Domain Usage'}`,
+      customer: {
+        email: userEmail,
+        name: customerDetails?.customerName,
+        phone: customerDetails?.phone,
+      },
+      returnUrl,
+      websiteUrl: env.WEBSITE_URL,
+    });
+
+    invoice.khaltiPidx = checkoutResult.pidx;
+    invoice.status = 'Initiated';
+    await invoice.save();
+
+    return checkoutResult;
+  }
+
+  /** List billing invoices for a user with optional type and domainId filters */
+  async listInvoices(
+    userId: string,
+    filters?: { type?: 'subscription' | 'usage'; domainId?: string },
+  ): Promise<IInvoiceDocument[]> {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const query: Record<string, unknown> = { userId: userObjectId };
+    if (filters?.type) {
+      query.type = filters.type;
+    }
+    if (filters?.domainId) {
+      query.domainId = new mongoose.Types.ObjectId(filters.domainId);
+    }
+    return Invoice.find(query).sort({ createdAt: -1 }).exec();
   }
 }
 

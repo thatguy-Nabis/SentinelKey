@@ -12,8 +12,9 @@ export class EventClassifierService {
     event: Record<string, unknown>;
     history?: Array<Record<string, unknown>>;
     policyVersion?: number;
+    domainId?: string;
   }): Promise<IClassificationResult> {
-    const { event, history = [], policyVersion } = params;
+    const { event, history = [], policyVersion, domainId } = params;
     const policy = await getActivePolicy('event', policyVersion);
 
     const version = policy ? policy.version : 1;
@@ -148,12 +149,13 @@ export class EventClassifierService {
       matchedRules,
       policyVersion: version,
       policyId,
+      domainId,
       timestamp: new Date(),
       metadata: { eventType, eventIp, eventUser },
     };
 
     // Audit log & trigger IDS alert if not safe
-    await recordAndAlert(result, { ip: eventIp, userId: eventUser });
+    await recordAndAlert(result, { ip: eventIp, userId: eventUser, domainId });
 
     return result;
   }

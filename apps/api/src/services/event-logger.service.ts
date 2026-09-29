@@ -14,6 +14,7 @@ export interface IEmitEventOptions {
   type: SecurityEventType;
   ip: string;
   userId?: string;
+  domainId?: string;
   severity?: EventSeverity;
   timestamp?: Date;
   metadata?: ISecurityEventMetadata;
@@ -28,11 +29,13 @@ export async function emitSecurityEvent(
   try {
     const timestamp = options.timestamp ?? new Date();
     const severity = options.severity ?? inferSeverity(options.type);
+    const domainId = options.domainId || (options.metadata?.domainId as string | undefined);
 
     const doc = await SecurityEvent.create({
       type: options.type,
       ip: options.ip,
       userId: options.userId,
+      domainId,
       severity,
       timestamp,
       metadata: options.metadata ?? {},
@@ -76,6 +79,9 @@ async function processHeuristicsForEvent(event: ISecurityEvent): Promise<void> {
   const candidates = evaluateHeuristics(event, recentEvents);
 
   for (const candidate of candidates) {
+    if (event.domainId && !candidate.domainId) {
+      candidate.domainId = event.domainId;
+    }
     await createAlert(candidate);
   }
 
@@ -111,6 +117,7 @@ export interface ISecurityEventFilter {
   severity?: EventSeverity;
   ip?: string;
   userId?: string;
+  domainId?: string;
   startDate?: string | Date;
   endDate?: string | Date;
   page?: number;
@@ -133,6 +140,7 @@ export async function getSecurityEvents(
   if (filters.severity) query.severity = filters.severity;
   if (filters.ip) query.ip = filters.ip;
   if (filters.userId) query.userId = filters.userId;
+  if (filters.domainId) query.domainId = filters.domainId;
 
   if (filters.startDate || filters.endDate) {
     const timestampQuery: Record<string, Date> = {};

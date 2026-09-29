@@ -1,5 +1,5 @@
 # Block accidental commits of environment files and private keys (SentinelKey rule #4).
-if git diff --cached --name-only | grep -Eq '(^|/)(\.env|\.env\..*)$|\.pem$|\.key$|id_rsa|id_ed25519'; then
+if git diff --cached --name-only | grep -v '\.env\.example$' | grep -Eq '(^|/)(\.env|\.env\..*)$|\.pem$|\.key$|id_rsa|id_ed25519'; then
   echo "pre-commit blocked: environment files or private keys must not be committed." >&2
   exit 1
 fi

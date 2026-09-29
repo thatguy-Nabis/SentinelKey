@@ -103,7 +103,7 @@ export class KhaltiProvider implements PaymentProvider {
     if (!response.ok) {
       let errorMessage = `Khalti initiate failed (${response.status})`;
       try {
-        const errJson = (await response.json()) as Record<string, any>;
+        const errJson = (await response.json()) as Record<string, unknown>;
         if (errJson.detail) {
           errorMessage += `: ${typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail)}`;
         } else if (errJson.error) {
@@ -158,7 +158,7 @@ export class KhaltiProvider implements PaymentProvider {
     if (!response.ok) {
       let errorMessage = `Khalti lookup failed (${response.status})`;
       try {
-        const errJson = (await response.json()) as Record<string, any>;
+        const errJson = (await response.json()) as Record<string, unknown>;
         if (errJson.detail) {
           errorMessage += `: ${typeof errJson.detail === 'string' ? errJson.detail : JSON.stringify(errJson.detail)}`;
         } else if (errJson.error) {

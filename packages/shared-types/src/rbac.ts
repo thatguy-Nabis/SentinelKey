@@ -2,7 +2,7 @@
  * RBAC types shared across API, dashboard, and SDK.
  *
  * Permission format: "resource:action"
- * Resources: users, roles, logs, alerts, settings, encryption, classify
+ * Resources: users, roles, logs, alerts, settings, encryption, classify, domains
  * Actions: read, write, delete, manage
  */
 
@@ -26,7 +26,10 @@ export type Permission =
   | 'files:write'
   | 'files:delete'
   | 'classify:read'
-  | 'classify:write';
+  | 'classify:write'
+  | 'domains:read'
+  | 'domains:write'
+  | 'domains:manage';
 
 /** A role with its associated permissions */
 export interface IRole {
@@ -50,6 +53,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'encryption:read', 'encryption:write',
     'files:read', 'files:write', 'files:delete',
     'classify:read', 'classify:write',
+    'domains:read', 'domains:write', 'domains:manage',
   ],
   analyst: [
     'users:read',
@@ -59,6 +63,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'encryption:read',
     'files:read', 'files:write',
     'classify:read', 'classify:write',
+    'domains:read', 'domains:write',
   ],
   viewer: [
     'users:read',
@@ -68,5 +73,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'settings:read',
     'files:read',
     'classify:read',
+    'domains:read', 'domains:write',
   ],
 };

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
+import { BottomNav } from './components/layout/BottomNav';
+import { MobileDrawer } from './components/layout/MobileDrawer';
 import { OverviewView } from './components/overview/OverviewView';
 import { LogsView } from './components/logs/LogsView';
 import { AlertsView } from './components/alerts/AlertsView';
@@ -15,6 +17,7 @@ const DashboardContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('overview');
   const [openAlertCount, setOpenAlertCount] = useState<number>(0);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
 
   const refreshAlertCount = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -44,10 +47,12 @@ const DashboardContent: React.FC = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100vh',
+          minHeight: '100dvh',
           background: 'var(--bg-app)',
           color: 'var(--text-secondary)',
           gap: 16,
+          padding: 20,
+          textAlign: 'center',
         }}
       >
         <div className="brand-icon" style={{ width: 48, height: 48, borderRadius: 12 }}>
@@ -67,14 +72,21 @@ const DashboardContent: React.FC = () => {
 
   return (
     <div className="app-layout">
+      {/* Desktop Sidebar (hidden on mobile via CSS) */}
       <Sidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         openAlertCount={openAlertCount}
       />
+
       <div className="main-content">
-        <Navbar currentTab={currentTab} />
-        <main style={{ flex: 1 }}>
+        <Navbar
+          currentTab={currentTab}
+          onOpenDrawer={() => setIsMobileDrawerOpen(true)}
+          openAlertCount={openAlertCount}
+          onNavigateTab={(tab) => setCurrentTab(tab)}
+        />
+        <main className="main-viewport">
           {currentTab === 'overview' && (
             <OverviewView onNavigateTab={(tab) => setCurrentTab(tab)} />
           )}
@@ -86,6 +98,23 @@ const DashboardContent: React.FC = () => {
           {currentTab === 'admin' && <AdminView />}
         </main>
       </div>
+
+      {/* Mobile-Native Navigation Components */}
+      <BottomNav
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        openAlertCount={openAlertCount}
+        onOpenMore={() => setIsMobileDrawerOpen(true)}
+        isMoreOpen={isMobileDrawerOpen}
+      />
+
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        openAlertCount={openAlertCount}
+      />
     </div>
   );
 };

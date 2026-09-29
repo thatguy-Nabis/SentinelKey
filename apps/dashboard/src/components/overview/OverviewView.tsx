@@ -27,10 +27,18 @@ import {
   Zap,
   AlertTriangle,
   Server,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Shield,
+  ArrowRight,
 } from 'lucide-react';
 import type { ISecurityEvent, IAlert, IClientDomain } from '@sentinelkey/shared-types';
 import * as api from '../../services/api';
 import { ServiceGuide } from './ServiceGuide';
+import { useIsMobile } from '../../hooks/useMediaQuery';
+import { BottomSheet } from '../common/BottomSheet';
+import { TapToCopy } from '../common/TapToCopy';
 
 ChartJS.register(
   CategoryScale,
@@ -53,6 +61,7 @@ interface OverviewProps {
 }
 
 export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
+  const isMobile = useIsMobile(768);
   const [events, setEvents] = useState<ISecurityEvent[]>([]);
   const [alerts, setAlerts] = useState<IAlert[]>([]);
   const [domains, setDomains] = useState<IClientDomain[]>([]);
@@ -60,6 +69,8 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testFeedback, setTestFeedback] = useState<string | null>(null);
+  const [isMobileProbeSheetOpen, setIsMobileProbeSheetOpen] = useState(false);
+  const [isServiceGuideOpen, setIsServiceGuideOpen] = useState(false);
 
   const lineChartRef = useRef<HTMLCanvasElement | null>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement | null>(null);
@@ -125,6 +136,18 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const loginSuccessRate =
     loginAttempts.length > 0 ? Math.round((successfulLogins / loginAttempts.length) * 100) : 100;
 
+  // Top IP calculations for mobile list & bar chart
+  const ipCounts: Record<string, number> = {};
+  for (const e of filteredEvents) {
+    if (e.ip) {
+      ipCounts[e.ip] = (ipCounts[e.ip] || 0) + 1;
+    }
+  }
+  const sortedIps = Object.entries(ipCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const maxIpCount = sortedIps.length > 0 ? sortedIps[0][1] : 1;
+
   // Send real test telemetry ping to currently selected domain
   const handleSendTestTelemetry = async (isThreat = false) => {
     if (!activeDomain) return;
@@ -139,11 +162,12 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       );
       await loadData();
       setTimeout(() => setTestFeedback(null), 4000);
-    } catch (err) {
+    } catch {
       setTestFeedback('Failed to dispatch test telemetry.');
       setTimeout(() => setTestFeedback(null), 4000);
     } finally {
       setIsSendingTest(false);
+      setIsMobileProbeSheetOpen(false);
     }
   };
 
@@ -189,6 +213,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               tension: 0.3,
               fill: true,
+              pointRadius: isMobile ? 3 : 4,
             },
             {
               label: 'Failed / Anomaly Events',
@@ -197,6 +222,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               backgroundColor: 'rgba(244, 63, 94, 0.1)',
               tension: 0.3,
               fill: true,
+              pointRadius: isMobile ? 3 : 4,
             },
           ],
         },
@@ -205,18 +231,30 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#94a3b8', font: { family: 'Inter' } },
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'Inter', size: isMobile ? 11 : 12 },
+                boxWidth: isMobile ? 12 : 24,
+              },
+            },
+            tooltip: {
+              intersect: false,
+              mode: 'index',
             },
           },
           scales: {
             x: {
               grid: { color: 'rgba(30, 41, 59, 0.5)' },
-              ticks: { color: '#64748b' },
+              ticks: {
+                color: '#64748b',
+                font: { size: isMobile ? 10 : 12 },
+                maxTicksLimit: isMobile ? 4 : 6,
+              },
             },
             y: {
               beginAtZero: true,
               grid: { color: 'rgba(30, 41, 59, 0.5)' },
-              ticks: { color: '#64748b', precision: 0 },
+              ticks: { color: '#64748b', precision: 0, font: { size: isMobile ? 10 : 12 } },
             },
           },
         },
@@ -254,26 +292,20 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#94a3b8', font: { family: 'Inter' } },
+              labels: {
+                color: '#94a3b8',
+                font: { family: 'Inter', size: isMobile ? 11 : 12 },
+                boxWidth: isMobile ? 10 : 20,
+              },
             },
           },
         },
       });
     }
 
-    // 3. Bar Chart: Real Top Flagged IP Sources
-    if (barChartRef.current) {
+    // 3. Bar Chart: Real Top Flagged IP Sources (Desktop)
+    if (barChartRef.current && !isMobile) {
       if (barChartInstance.current) barChartInstance.current.destroy();
-
-      const ipCounts: Record<string, number> = {};
-      for (const e of filteredEvents) {
-        if (e.ip) {
-          ipCounts[e.ip] = (ipCounts[e.ip] || 0) + 1;
-        }
-      }
-      const sortedIps = Object.entries(ipCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
 
       const labels = sortedIps.length > 0 ? sortedIps.map((x) => x[0]) : ['No traffic yet'];
       const data = sortedIps.length > 0 ? sortedIps.map((x) => x[1]) : [0];
@@ -320,21 +352,99 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       doughnutChartInstance.current?.destroy();
       barChartInstance.current?.destroy();
     };
-  }, [filteredEvents, filteredAlerts]);
+  }, [filteredEvents, filteredAlerts, isMobile]);
 
   return (
     <div className="content-body">
+      {/* Mobile Glanceable Security Posture Hero */}
+      {isMobile && (
+        <div
+          className="mobile-sec-card"
+          style={{
+            background: openAlerts.length > 0
+              ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.12), rgba(15, 23, 42, 0.9))'
+              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.9))',
+            borderColor: openAlerts.length > 0 ? 'rgba(244, 63, 94, 0.35)' : 'rgba(16, 185, 129, 0.35)',
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: openAlerts.length > 0 ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  color: openAlerts.length > 0 ? 'var(--color-rose)' : 'var(--color-emerald)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {openAlerts.length > 0 ? <AlertOctagon size={20} /> : <Shield size={20} />}
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  Security Posture
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff' }}>
+                  {openAlerts.length > 0 ? 'Action Required' : 'All Systems Nominal'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={loadData}
+              disabled={isLoading}
+              className="btn btn-secondary btn-sm"
+              style={{ minHeight: 36, padding: '4px 10px', gap: 6 }}
+              aria-label="Refresh telemetry"
+            >
+              <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
+              <span>{isLoading ? 'Syncing' : 'Sync'}</span>
+            </button>
+          </div>
+
+          {openAlerts.length > 0 && (
+            <div
+              onClick={() => onNavigateTab('alerts')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid rgba(244, 63, 94, 0.3)',
+                color: '#fff',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="badge badge-critical" style={{ fontSize: '0.7rem' }}>
+                  {criticalThreats.length} CRITICAL
+                </span>
+                <span>{openAlerts.length} open alert{openAlerts.length > 1 ? 's' : ''} pending triage</span>
+              </div>
+              <ArrowRight size={16} color="var(--color-rose)" />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Target Application & Domain Hook Header */}
       <div
         className="glass-panel"
         style={{
-          padding: '1rem 1.25rem',
+          padding: isMobile ? '12px 14px' : '1rem 1.25rem',
           marginBottom: '1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
+          alignItems: isMobile ? 'stretch' : 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: '0.85rem',
           borderLeft: '4px solid var(--color-cyan)',
         }}
       >
@@ -349,27 +459,26 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-cyan)',
+              flexShrink: 0,
             }}
           >
             <Radio size={20} />
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
               Live Telemetry Target
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 2, flexWrap: 'wrap' }}>
               <select
                 value={selectedDomainId}
                 onChange={(e) => setSelectedDomainId(e.target.value)}
+                className="form-select"
                 style={{
-                  backgroundColor: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 6,
-                  padding: '4px 8px',
+                  padding: '5px 8px',
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  width: isMobile ? '100%' : 'auto',
                 }}
               >
                 <option value="all">All Protected Domains ({domains.length})</option>
@@ -380,7 +489,7 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                 ))}
               </select>
 
-              {activeDomain && (
+              {activeDomain && !isMobile && (
                 <span
                   style={{
                     fontSize: '0.75rem',
@@ -394,64 +503,143 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                     color: activeDomain.healthStatus === 'healthy' ? '#10b981' : '#f43f5e',
                   }}
                 >
-                  ● {activeDomain.healthStatus.toUpperCase()}
+                  ● {(activeDomain.healthStatus ?? 'unverified').toUpperCase()}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Quick Actions & Ingestion Trigger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          {activeDomain && (
-            <>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleSendTestTelemetry(false)}
-                disabled={isSendingTest}
-                title="Send test clean web traffic event"
-                style={{ gap: 5 }}
-              >
-                <Zap size={13} color="var(--color-emerald)" />
-                {isSendingTest ? 'Sending...' : 'Send Live Telemetry Ping'}
-              </button>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleSendTestTelemetry(true)}
-                disabled={isSendingTest}
-                title="Send test IDS attack event to trigger alert"
-                style={{ gap: 5 }}
-              >
-                <AlertTriangle size={13} color="var(--color-rose)" />
-                Simulate Attack Probe
-              </button>
-            </>
-          )}
+        {/* Quick Actions (Desktop: horizontal inline bar; Mobile: trigger probe bottom sheet) */}
+        {!isMobile ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            {activeDomain && (
+              <>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleSendTestTelemetry(false)}
+                  disabled={isSendingTest}
+                  title="Send test clean web traffic event"
+                  style={{ gap: 5 }}
+                >
+                  <Zap size={13} color="var(--color-emerald)" />
+                  {isSendingTest ? 'Sending...' : 'Send Live Telemetry Ping'}
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleSendTestTelemetry(true)}
+                  disabled={isSendingTest}
+                  title="Send test IDS attack event to trigger alert"
+                  style={{ gap: 5 }}
+                >
+                  <AlertTriangle size={13} color="var(--color-rose)" />
+                  Simulate Attack Probe
+                </button>
+              </>
+            )}
 
-          <a
-            href="http://localhost:5174/app"
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-secondary btn-sm"
-            style={{ gap: 5, color: '#a78bfa' }}
-            title="Open Hub Website to register new domain / port"
-          >
-            <Globe size={13} />
-            Manage Domains in Hub
-            <ExternalLink size={11} />
-          </a>
+            <a
+              href="http://localhost:5174/app"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary btn-sm"
+              style={{ gap: 5, color: '#a78bfa' }}
+              title="Open Hub Website to register new domain / port"
+            >
+              <Globe size={13} />
+              Manage Domains in Hub
+              <ExternalLink size={11} />
+            </a>
 
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={loadData}
-            disabled={isLoading}
-            style={{ gap: 6 }}
-          >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-            {isLoading ? 'Syncing...' : 'Sync'}
-          </button>
-        </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={loadData}
+              disabled={isLoading}
+              style={{ gap: 6 }}
+            >
+              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+              {isLoading ? 'Syncing...' : 'Sync'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            {activeDomain && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsMobileProbeSheetOpen(true)}
+                style={{ flex: 1, minHeight: 40, justifyContent: 'center' }}
+              >
+                <SlidersHorizontal size={14} color="var(--color-cyan)" />
+                Telemetry Actions & Probes
+              </button>
+            )}
+            <a
+              href="http://localhost:5174/app"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary btn-sm"
+              style={{ minHeight: 40, padding: '0 12px' }}
+              title="Hub Console"
+            >
+              <Globe size={14} />
+            </a>
+          </div>
+        )}
       </div>
+
+      {/* Mobile Telemetry Probes Bottom Sheet */}
+      {isMobile && (
+        <BottomSheet
+          isOpen={isMobileProbeSheetOpen}
+          onClose={() => setIsMobileProbeSheetOpen(false)}
+          title="Telemetry Simulation & Probes"
+          subtitle={`Target: ${activeDomain?.name || 'Selected Domain'} (${activeDomain?.domainUrl || ''})`}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleSendTestTelemetry(false)}
+              disabled={isSendingTest}
+              style={{ minHeight: 48, justifyContent: 'flex-start', padding: '12px 16px' }}
+            >
+              <Zap size={18} color="var(--color-emerald)" />
+              <div style={{ textAlign: 'left', marginLeft: 8 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Send Clean Telemetry Ping</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ingests a benign HTTP probe event</div>
+              </div>
+            </button>
+
+            <button
+              className="btn btn-danger"
+              onClick={() => handleSendTestTelemetry(true)}
+              disabled={isSendingTest}
+              style={{ minHeight: 48, justifyContent: 'flex-start', padding: '12px 16px' }}
+            >
+              <AlertTriangle size={18} color="var(--color-rose)" />
+              <div style={{ textAlign: 'left', marginLeft: 8 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Simulate IDS Attack Probe</div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(244, 63, 94, 0.8)' }}>Triggers heuristic intrusion alert</div>
+              </div>
+            </button>
+
+            <a
+              href="http://localhost:5174/app"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary"
+              style={{ minHeight: 48, justifyContent: 'flex-start', padding: '12px 16px', color: '#a78bfa' }}
+            >
+              <Globe size={18} />
+              <div style={{ textAlign: 'left', marginLeft: 8, flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Manage Domains in Hub</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Add new ports or client API keys</div>
+              </div>
+              <ExternalLink size={16} />
+            </a>
+          </div>
+        </BottomSheet>
+      )}
 
       {/* Test Feedback Toast */}
       {testFeedback && (
@@ -460,16 +648,16 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             backgroundColor: 'rgba(16, 185, 129, 0.15)',
             border: '1px solid rgba(16, 185, 129, 0.3)',
             color: '#6ee7b7',
-            padding: '8px 14px',
-            borderRadius: 6,
-            marginBottom: 12,
+            padding: '10px 14px',
+            borderRadius: 8,
+            marginBottom: 14,
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
           }}
         >
-          <CheckCircle2 size={16} />
+          <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
           <span>{testFeedback}</span>
         </div>
       )}
@@ -484,52 +672,38 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             padding: '12px 16px',
             marginBottom: 16,
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
             justifyContent: 'space-between',
+            gap: 10,
             fontSize: '0.875rem',
             color: '#fcd34d',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Server size={18} />
+            <Server size={18} style={{ flexShrink: 0 }} />
             <span>
               <strong>No Client Website Registered:</strong> Go to the Hub Console at{' '}
-              <code>http://localhost:5174/app</code> to add your localhost port (e.g. <code>http://localhost:3000</code>)
-              and generate client API keys.
+              <code>http://localhost:5174/app</code> to register your app.
             </span>
           </div>
           <a
             href="http://localhost:5174/app"
             target="_blank"
             rel="noreferrer"
-            style={{ color: '#fff', textDecoration: 'underline', fontWeight: 600 }}
+            style={{ color: '#fff', textDecoration: 'underline', fontWeight: 600, minHeight: 36, display: 'inline-flex', alignItems: 'center' }}
           >
             Register Now →
           </a>
         </div>
       )}
 
-      {/* Metrics Row */}
+      {/* Metrics Row: Urgency Ordered */}
       <div className="stats-grid">
         <div
           className="stat-card"
-          onClick={() => onNavigateTab('logs')}
-          style={{ cursor: 'pointer' }}
-          title="Click to view full security audit log"
-        >
-          <div>
-            <div className="stat-label">Security Events ({activeDomain ? activeDomain.name : 'All Domains'})</div>
-            <div className="stat-value font-mono">{totalEvents}</div>
-          </div>
-          <div className="stat-icon" style={{ background: 'rgba(0, 240, 255, 0.1)', color: 'var(--color-cyan)' }}>
-            <Activity size={22} />
-          </div>
-        </div>
-
-        <div
-          className="stat-card"
           onClick={() => onNavigateTab('alerts')}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: 'pointer', borderLeft: openAlerts.length > 0 ? '3px solid var(--color-rose)' : undefined }}
           title="Click to view IDS triage alerts"
         >
           <div>
@@ -543,7 +717,12 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className="stat-card"
+          onClick={() => onNavigateTab('alerts')}
+          style={{ cursor: 'pointer', borderLeft: criticalThreats.length > 0 ? '3px solid #fb923c' : undefined }}
+          title="Click to view critical alerts"
+        >
           <div>
             <div className="stat-label">Critical Threats</div>
             <div className="stat-value font-mono" style={{ color: criticalThreats.length > 0 ? 'var(--color-rose)' : 'inherit' }}>
@@ -552,6 +731,21 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           </div>
           <div className="stat-icon" style={{ background: 'rgba(249, 115, 22, 0.1)', color: '#fb923c' }}>
             <ShieldAlert size={22} />
+          </div>
+        </div>
+
+        <div
+          className="stat-card"
+          onClick={() => onNavigateTab('logs')}
+          style={{ cursor: 'pointer' }}
+          title="Click to view full security audit log"
+        >
+          <div>
+            <div className="stat-label">Total Events ({activeDomain ? activeDomain.name : 'All'})</div>
+            <div className="stat-value font-mono">{totalEvents}</div>
+          </div>
+          <div className="stat-icon" style={{ background: 'rgba(0, 240, 255, 0.1)', color: 'var(--color-cyan)' }}>
+            <Activity size={22} />
           </div>
         </div>
 
@@ -570,43 +764,141 @@ export const OverviewView: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
       {/* Charts Grid */}
       <div className="charts-grid">
-        <div className="glass-panel" style={{ height: 320 }}>
+        <div className="glass-panel" style={{ height: isMobile ? 260 : 320 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>
-              Live Telemetry — {activeDomain ? activeDomain.domainUrl : 'Aggregated Stream'}
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 600 }}>
+              Live Telemetry — {activeDomain ? activeDomain.domainUrl : 'Aggregated'}
             </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real 60-minute window</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>60m window</span>
           </div>
-          <div style={{ height: 'calc(100% - 36px)' }}>
+          <div style={{ height: 'calc(100% - 32px)' }}>
             <canvas ref={lineChartRef} />
           </div>
         </div>
 
-        <div className="glass-panel" style={{ height: 320 }}>
+        <div className="glass-panel" style={{ height: isMobile ? 260 : 320 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Alert Severity Breakdown</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 600 }}>Alert Severity</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               {openAlerts.length} active
             </span>
           </div>
-          <div style={{ height: 'calc(100% - 36px)' }}>
+          <div style={{ height: 'calc(100% - 32px)' }}>
             <canvas ref={doughnutChartRef} />
           </div>
         </div>
       </div>
 
-      {/* Bottom Grid: Top Flagged Sources & Live Attack Simulation Box */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
-        <div className="glass-panel" style={{ height: 280 }}>
-          <div style={{ marginBottom: 12 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Top Flagged IP Sources (Actual)</h3>
+      {/* Bottom Section: Top Flagged IP Sources & Service Guide */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr',
+          gap: 20,
+          marginTop: 4,
+        }}
+      >
+        {/* Top Flagged IPs: Sleek Mobile Ranked List on Mobile, Bar Chart on Desktop */}
+        <div className="glass-panel" style={{ height: isMobile ? 'auto' : 280 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Top Flagged IP Sources</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Observed traffic</span>
           </div>
-          <div style={{ height: 'calc(100% - 36px)' }}>
-            <canvas ref={barChartRef} />
-          </div>
+
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sortedIps.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '12px 0' }}>
+                  No traffic ingested yet.
+                </div>
+              ) : (
+                sortedIps.map(([ip, count], index) => {
+                  const percentage = Math.round((count / maxIpCount) * 100);
+                  return (
+                    <div
+                      key={ip}
+                      style={{
+                        background: 'rgba(11, 17, 32, 0.5)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                            #{index + 1}
+                          </span>
+                          <TapToCopy value={ip} />
+                        </div>
+                        <span className="font-mono" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {count} {count === 1 ? 'event' : 'events'}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 5,
+                          background: 'rgba(30, 41, 59, 0.5)',
+                          borderRadius: 3,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${percentage}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, var(--color-indigo), var(--color-cyan))',
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div style={{ height: 'calc(100% - 36px)' }}>
+              <canvas ref={barChartRef} />
+            </div>
+          )}
         </div>
 
-        <ServiceGuide onNavigateTab={onNavigateTab} />
+        {/* Service Guide: Accordion Collapsible on Mobile, Fixed Height on Desktop */}
+        {isMobile ? (
+          <div className="glass-panel" style={{ padding: '14px 16px' }}>
+            <button
+              type="button"
+              onClick={() => setIsServiceGuideOpen(!isServiceGuideOpen)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                minHeight: 44,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Shield size={18} color="var(--color-cyan)" />
+                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Service Capabilities Guide</span>
+              </div>
+              {isServiceGuideOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+
+            {isServiceGuideOpen && (
+              <div style={{ marginTop: 12 }}>
+                <ServiceGuide onNavigateTab={onNavigateTab} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <ServiceGuide onNavigateTab={onNavigateTab} />
+        )}
       </div>
     </div>
   );

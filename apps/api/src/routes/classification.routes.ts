@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/authenticate.js';
+import { authenticateOrSiteKey } from '../middleware/authenticate-site-key.js';
 import { authorize } from '../middleware/authorize.js';
+import { apiRateLimiter } from '../middleware/rate-limiter.js';
 import {
   classifyEvent,
   classifyFile,
@@ -10,9 +11,9 @@ import {
 
 const router = Router();
 
-router.post('/event', authenticate, authorize('classify:write'), classifyEvent);
-router.post('/file', authenticate, authorize('classify:write'), classifyFile);
-router.post('/email', authenticate, authorize('classify:write'), classifyEmail);
-router.get('/history', authenticate, authorize('classify:read'), listClassificationHistory);
+router.post('/event', authenticateOrSiteKey, apiRateLimiter, authorize('classify:write'), classifyEvent);
+router.post('/file', authenticateOrSiteKey, apiRateLimiter, authorize('classify:write'), classifyFile);
+router.post('/email', authenticateOrSiteKey, apiRateLimiter, authorize('classify:write'), classifyEmail);
+router.get('/history', authenticateOrSiteKey, apiRateLimiter, authorize('classify:read'), listClassificationHistory);
 
 export default router;

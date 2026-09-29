@@ -515,6 +515,48 @@ export async function disableMfa(
 }
 
 /**
+ * Change user password.
+ * Verifies current password with bcrypt, updates passwordHash, and saves.
+ */
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  ip = '127.0.0.1',
+): Promise<{ message: string }> {
+  const user = await User.findById(userId).select('+passwordHash');
+  if (!user) {
+    throw Object.assign(new Error('User not found'), { statusCode: 404 });
+  }
+
+  const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!validPassword) {
+    throw Object.assign(new Error('Current password is incorrect'), { statusCode: 401 });
+  }
+
+  if (newPassword.length < 8) {
+    throw Object.assign(new Error('New password must be at least 8 characters long'), { statusCode: 400 });
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  // Security best practice: revoke all existing refresh tokens/sessions upon password change
+  user.refreshTokens = [];
+  await user.save();
+
+  emitSecurityEvent({
+    type: 'AUTH_PASSWORD_CHANGED',
+    userId,
+    ip,
+    severity: 'info',
+    metadata: {
+      email: user.email,
+    },
+  }).catch(() => {});
+
+  return { message: 'Password updated successfully' };
+}
+
+/**
  * Rotate a refresh token.
  * - Validates the old refresh token
  * - Deletes its hash from the user's stored tokens

@@ -14,10 +14,13 @@ export async function classifyEvent(req: Request, res: Response): Promise<void> 
       return;
     }
 
+    const domainId = req.domain?.id || req.domain?._id;
+
     const result = await eventClassifierService.classifyEvent({
       event,
       history,
       policyVersion,
+      domainId,
     });
 
     sendSuccess(res, result);
@@ -37,6 +40,7 @@ export async function classifyFile(req: Request, res: Response): Promise<void> {
 
     const ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
     const userId = req.user?.sub;
+    const domainId = req.domain?.id || req.domain?._id;
 
     const result = await fileClassifierService.classifyFile({
       filename,
@@ -44,6 +48,7 @@ export async function classifyFile(req: Request, res: Response): Promise<void> {
       mimeType,
       sha256,
       userId,
+      domainId,
       ip,
       policyVersion,
     });
@@ -65,11 +70,13 @@ export async function classifyEmail(req: Request, res: Response): Promise<void> 
 
     const ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
     const userId = req.user?.sub;
+    const domainId = req.domain?.id || req.domain?._id;
 
     const result = await emailClassifierService.classifyEmail({
       email,
       ip,
       userId,
+      domainId,
       policyVersion,
     });
 
@@ -148,9 +155,23 @@ export async function listClassificationHistory(req: Request, res: Response): Pr
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
     const skip = (page - 1) * limit;
 
+    const isSecurityStaff = Boolean(
+      req.user?.roles?.includes('admin') || req.user?.roles?.includes('analyst'),
+    );
+
     const query: Record<string, unknown> = {};
     if (req.query.subjectType) query.subjectType = req.query.subjectType;
     if (req.query.verdict) query.verdict = req.query.verdict;
+
+    if (req.domain) {
+      query.domainId = req.domain.id || (req.domain as unknown as { _id?: string })._id?.toString();
+    } else if (isSecurityStaff) {
+      if (req.query.domainId) query.domainId = req.query.domainId;
+      if (req.query.userId) query.userId = req.query.userId;
+    } else if (req.user?.sub) {
+      query.userId = req.user.sub;
+      if (req.query.domainId) query.domainId = req.query.domainId;
+    }
 
     const [records, total] = await Promise.all([
       ClassificationRecord.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit),

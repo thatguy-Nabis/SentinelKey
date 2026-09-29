@@ -332,3 +332,24 @@ curl -X POST "https://dev.khalti.com/api/v2/epayment/lookup/" \
 | Success status | `Completed` |
 | Payment page | Hosted by Khalti (`payment_url`) |
 | Payment ID | `pidx` |
+
+---
+
+## 11. Usage Invoicing & Delinquency Flow (Phase 10c)
+
+In Phase 10c, SentinelKey extends the Khalti integration to bill domain overage at period close:
+
+1. **Usage Invoicing**:
+   - Invoices are tagged with `type: 'usage'` and link to the domain via `domainId` and `domainOrigin`.
+   - Overage is calculated strictly in integer paisa: `max(0, units - included) × overage_rate_paisa`.
+   - Balances under the Khalti minimum (`MINIMUM_PAYABLE_PAISA = 1000`, NPR 10) roll forward to the next period.
+   - Period close is strictly idempotent via MongoDB compound unique index `{ domainId: 1, periodStart: 1, periodEnd: 1 }`.
+2. **Checkout & Fulfillment**:
+   - `POST /billing/invoices/:id/checkout` initiates a Khalti session for a usage invoice (`orderName: SentinelKey Usage — <domainOrigin>`).
+   - `GET /billing/verify?pidx=...` verifies the transaction using `lookup`.
+   - When verified, the usage invoice is marked `Completed` without altering the user's subscription cadence.
+3. **Delinquency & Suspension**:
+   - Usage invoices carry a 7-day grace period (`dueDate = periodEnd + 7 days`).
+   - If overdue and unpaid, the domain transitions to `status: 'suspended'` with `suspensionReason: 'unpaid'`.
+   - SDK calls with the domain's site key return HTTP 402 (`DOMAIN_UNPAID`).
+   - Paying the overdue invoice automatically reactivates the domain to `status: 'active'`.

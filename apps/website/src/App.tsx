@@ -12,6 +12,7 @@ import { MockKhaltiWallet } from './pages/MockKhaltiWallet.js';
 import { HubPage } from './pages/HubPage.js';
 import { BillingPage } from './pages/BillingPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
+import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
 
 export const App: React.FC = () => {
   return (
@@ -25,10 +26,38 @@ export const App: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/mock-khalti" element={<MockKhaltiWallet />} />
-      <Route path="/app" element={<HubPage />} />
-      <Route path="/app/billing" element={<BillingPage />} />
-      <Route path="/app/settings" element={<SettingsPage />} />
-      <Route path="/app/settings/:tab" element={<SettingsPage />} />
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute>
+            <HubPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/billing"
+        element={
+          <ProtectedRoute>
+            <BillingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/settings/:tab"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

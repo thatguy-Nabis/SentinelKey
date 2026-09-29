@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -29,16 +29,18 @@ import { api } from '../services/api.js';
 import type { ISubscription } from '@sentinelkey/shared-types';
 
 export const HubPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [showBanner, setShowBanner] = useState(true);
   const [subscription, setSubscription] = useState<ISubscription | null>(null);
-  const username = user?.email.split('@')[0] || 'alexchen';
+  const username = user?.email ? user.email.split('@')[0] : 'operator';
 
   useEffect(() => {
-    api.getSubscription()
-      .then((sub) => setSubscription(sub))
-      .catch((err) => console.error('Error fetching subscription in Hub:', err));
-  }, []);
+    if (!loading && user) {
+      api.getSubscription()
+        .then((sub) => setSubscription(sub))
+        .catch((err) => console.error('Error fetching subscription in Hub:', err));
+    }
+  }, [loading, user]);
 
   // --------------------------------------------------------------------------
   // Interactive Modals State

@@ -19,7 +19,7 @@ import { useAuth } from '../../context/AuthContext.js';
 
 export const HubHeader: React.FC = () => {
   const { user, logout } = useAuth();
-  const username = user?.email.split('@')[0] || 'alexchen';
+  const username = user?.email ? user.email.split('@')[0] : 'operator';
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -242,7 +242,7 @@ export const HubHeader: React.FC = () => {
             >
               <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #2B214C', marginBottom: '0.35rem' }}>
                 <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: '0.85rem' }}>{username}</div>
-                <div style={{ color: '#94A3B8', fontSize: '0.75rem' }}>{user?.email || 'alexchen@sentinelkey.io'}</div>
+                <div style={{ color: '#94A3B8', fontSize: '0.75rem' }}>{user?.email || 'operator@sentinelkey.local'}</div>
               </div>
 
               <Link

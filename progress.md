@@ -16,6 +16,8 @@ Single source of truth for what changed in each phase. Updated after every phase
 | 7     | Compliance / Classification   | ✅ complete |
 | 8     | SDK + Browser Extension       | ✅ complete |
 | 9     | Website, Hub & Khalti Billing | ✅ complete |
+| 9.5   | Mobile Security Console       | ✅ complete |
+| 10    | Domains, Metering & Usage Billing | ⏳ in progress |
 
 ---
 
@@ -800,3 +802,246 @@ extension/
 - **Paisa Amount Convention**: Strict integer conversion (`Math.round(priceNpr * 100)`), verified against Khalti lookup totals upon verification to prevent price manipulation.
 - **Customer Phone Requirement**: Added optional customer phone and name support in checkout payload and billing UI modal, satisfying Khalti's live environment phone requirement with sandbox fallbacks.
 - **Idempotency & Security**: Guarded order fulfillment against repeated return URL visits / browser refreshes, verified invoice ownership by user ID, and cleaned query string parameters upon verification.
+
+---
+
+## Phase 9.5 — Mobile Security Console Experience
+
+**Status:** ✅ Complete (2026-09-28)
+
+### What was created
+
+```
+apps/dashboard/src/
+├── hooks/
+│   └── useMediaQuery.ts               # useMediaQuery, useIsMobile(768), useIsTablet() hooks
+├── components/
+│   ├── common/
+│   │   ├── BottomSheet.tsx            # Accessible touch slide-up bottom sheet with backdrop blur & drag handle
+│   │   ├── SeverityBadge.tsx          # Multi-attribute badge (Color + Icon + Text; never color alone)
+│   │   └── TapToCopy.tsx              # Monospace copy pill with visual feedback & zero horizontal overflow
+│   └── layout/
+│       ├── BottomNav.tsx              # Native mobile bottom tab bar (Dashboard, Alerts, Activity, More)
+│       └── MobileDrawer.tsx           # Slide-in drawer with identity cards, navigation, and safe logout confirmation
+```
+
+**Files modified:**
+
+- `apps/dashboard/index.html` — Added `viewport-fit=cover` to viewport meta tag.
+- `apps/dashboard/src/index.css` — Integrated safe-area insets (`--sat`, `--sab`, `--sal`, `--sar`), fluid typography, 44px minimum tap targets, `@media (hover: hover)` guards, bottom sheet & mobile card styles.
+- `apps/dashboard/src/App.tsx` — Integrated `BottomNav`, `MobileDrawer`, and dynamic viewport padding.
+- `apps/dashboard/src/components/layout/Navbar.tsx` — Responsive header with compact mobile title, IDS live pulse, one-tap alert count jump, and drawer menu trigger.
+- `apps/dashboard/src/components/overview/OverviewView.tsx` — Added top glanceable posture hero card, single vertical urgency flow, responsive touch charts, ranked IP list with `TapToCopy`, and probe simulation bottom sheet.
+- `apps/dashboard/src/components/overview/ServiceGuide.tsx` — Responsive height and mobile CTA button sizing.
+- `apps/dashboard/src/components/alerts/AlertsView.tsx` — Purpose-built mobile triage cards, `SeverityBadge` (Color + Icon + Text), sticky filter bar with active chips, filter bottom sheet, and 44px action buttons.
+- `apps/dashboard/src/components/logs/LogsView.tsx` — Preserved 7-column desktop table; added mobile security event cards, sticky search bar, filter bottom sheet, and full-screen/bottom-sheet JSON inspector.
+- `apps/dashboard/src/components/settings/MfaSettingsView.tsx` — Single-column flow, centered QR code, 2-column backup codes with `TapToCopy`, 16px inputs (`inputmode="numeric"`, `autocomplete="one-time-code"`), and destructive action confirmation sheet.
+- `apps/dashboard/src/components/admin/AdminView.tsx` — Preserved desktop matrix table; added mobile permission cards with role entitlement badges (`ADMIN`, `ANALYST`, `VIEWER`) and live search filter.
+- `apps/dashboard/src/components/auth/AuthModal.tsx` — Full-height (`100dvh`) minimal view, 16px inputs to eliminate iOS auto-zoom, and 48px primary action buttons.
+
+### Architectural Highlights
+
+1. **Strict Presentation-Layer Scope**: Zero backend routes, Mongo models, JWT logic, permissions, or API contracts were modified.
+2. **100% Desktop Preservation**: Desktop layout (`>= 1024px`) remains visually and functionally identical to previous phases.
+3. **Mobile-Native Standards**:
+   - Zero horizontal scroll across 360px, 390px, and 430px screens.
+   - Body font at least 16px and all form inputs at least 16px (eliminating iOS Safari auto-zoom).
+   - Tap targets strictly meet or exceed 44x44px.
+   - Severity is never conveyed by color alone (always Color + Icon + Text).
+   - Safe-area insets respected on notch and home-indicator devices.
+
+### Verification
+
+- ✅ `pnpm --filter @sentinelkey/dashboard typecheck` — **0 errors**.
+- ✅ `pnpm --filter @sentinelkey/dashboard lint` — **0 errors**.
+- ✅ `pnpm --filter @sentinelkey/dashboard build` — **Production bundle compiled successfully**.
+- ✅ `pnpm typecheck` — **All 6 workspace packages passed cleanly**.
+- ✅ Browser viewport testing at 360px, 390px, 430px, 768px, and 1024px+ verified zero overflow and fluid responsive layout.
+
+---
+
+## Phase 10: Domains, Metering & Usage Billing
+
+### Sub-Phase 10a: Domain Registry & SHA-256 Hashed Site Keys (Completed)
+
+#### Completed Work & Architecture
+
+1. **Shared Types (`packages/shared-types`)**:
+   - `IDomain`: Core domain interface including `id`, `userId`, `label`, `host`, `port`, `origin`, `status` (`active` | `pending` | `suspended` | `deleted`), `suspensionReason` (`plan_limit` | `quota_exceeded` | `payment_past_due` | `manual`), `siteKeyPrefix`, `keyCreatedAt`, `keyRotatedAt`, `lastSeenAt`, and backward compatibility getters (`name`, `domainUrl`).
+   - `ICreateDomainRequest`, `ICreateDomainResponse`, `IRotateKeyResponse`, `IUpdateDomainRequest`, `IKeepDomainsRequest`.
+   - RBAC Permissions: `domains:read`, `domains:write`, `domains:manage` added to `Permission` and `DEFAULT_ROLE_PERMISSIONS`.
+   - Security Events: `DOMAIN_REGISTERED`, `DOMAIN_KEY_ROTATED`, `DOMAIN_SUSPENDED`, `DOMAIN_REACTIVATED`, `DOMAIN_DELETED` added to `SecurityEventType`.
+
+2. **Domain Configuration & Validation (`apps/api/src/config/domains.ts`)**:
+   - Allowed hosts restricted strictly to `['localhost', '127.0.0.1', '[::1]']`.
+   - Reserved ports rejected: `4000` (API), `5001` (ML Anomaly Service), `5173` (Dashboard), `5174` (Website/Hub).
+   - Port validation: strictly 1–65535, integer only.
+   - Normalized origin string format: `host:port` (lowercase, trimmed).
+
+3. **Mongoose Model (`apps/api/src/models/domain.model.ts`)**:
+   - `origin` partial unique index: `{ origin: 1 }` with `{ partialFilterExpression: { status: { $ne: 'deleted' } } }`. Soft-deleted domains do not block origin re-registration.
+   - `siteKeyHash`: 64-character SHA-256 digest with `select: false`.
+   - `toJSON` transform: deletes `siteKeyHash` and `__v`, exposes backward-compatible virtual getters.
+
+4. **Cryptographic Site-Key Security (`apps/api/src/services/domain.service.ts`)**:
+   - Site keys generated using Node.js `crypto.randomBytes(32)` as `sk_live_<hex64>`.
+   - Returned **exactly once** in `createDomain` and `rotateKey` response bodies.
+   - Plain key is **never saved** to MongoDB and **never returned** in list, get, update, or delete operations.
+   - Verified via dedicated test suite `apps/api/tests/site-key-never-exposed.test.ts`.
+
+5. **Plan Limits Enforcement**:
+   - Dynamic subscription check via `BillingService.getSubscription(userId)`.
+   - Free: 1 active domain, Pro: 5 active domains, Enterprise: 25+ active domains.
+   - Enforced on creation and on reactivation.
+   - Downgrade helper `keepDomainsOnDowngrade()` suspends unselected domains with reason `plan_limit`.
+
+6. **Controller & Routes (`apps/api/src/controllers/domain.controller.ts`, `apps/api/src/routes/domain.routes.ts`)**:
+   - `POST /domains` (`domains:write`) — registers domain and reveals key once (201).
+   - `GET /domains` (`domains:read`) — lists caller's active domains (or all if admin).
+   - `GET /domains/:id` (`domains:read`) — returns domain details.
+   - `PATCH /domains/:id` (`domains:write`) — updates label only (origin is immutable).
+   - `POST /domains/:id/rotate-key` (`domains:write`) — invalidates previous key and issues new one (revealed once).
+   - `POST /domains/:id/suspend` (`domains:write`) — suspends domain with audit reason.
+   - `POST /domains/:id/reactivate` (`domains:write`) — reactivates domain if within plan limit.
+   - `DELETE /domains/:id` (`domains:write`) — soft deletes domain (`status: 'deleted'`).
+   - `POST /domains/keep` (`domains:write`) — bulk selects active domains on downgrade.
+
+7. **Postman Collection**:
+   - Added `Phase 10a - Domain Registry` folder to `apps/api/postman/SentinelKey.postman_collection.json` with test scripts capturing `domainId` and `siteKey`.
+
+#### Verification Results
+
+- ✅ `pnpm --filter @sentinelkey/api test tests/domain.service.test.ts tests/site-key-never-exposed.test.ts` — **20/20 passed**.
+- ✅ `pnpm --filter @sentinelkey/api test` — **21 test files, 166/166 tests passed**.
+- ✅ `pnpm -r test` — **All workspace tests passed (API, SDK, Example App)**.
+- ✅ `pnpm -r build` — **All 6 packages compiled successfully**.
+
+---
+
+### Sub-Phase 10b — Site-Key Authentication, Metering and Quotas
+
+**Status:** ✅ Complete (2026-09-28)
+
+#### What was created & modified
+
+1. **Shared Types (`packages/shared-types`)**:
+   - `UnitTier`: `'light'` (1 unit), `'standard'` (3 units), `'heavy'` (10 units).
+   - Usage types: `IUsageUnitsByTier`, `IUsageRollup`, `IDomainUsageSummary`, `IUsageSummaryResponse`, `IDailyUsageBreakdown`.
+   - Security Events: added `DOMAIN_ORIGIN_MISMATCH` and `QUOTA_EXCEEDED` to `SecurityEventType`.
+   - Attribution: added optional `domainId` to `ISecurityEvent`, `IAlert`, and `IClassificationResult`.
+
+2. **Metering Configuration & Route Tiers (`apps/api/src/config/metering.ts`)**:
+   - Rates strictly in integer paisa: List rate (5 paisa/unit), Pro overage (4 paisa/unit), Enterprise overage (3 paisa/unit).
+   - Plan quotas: Free (10,000 units/mo hard cap), Pro (25,000 units/domain/mo allowance), Enterprise (100,000 units/domain/mo).
+   - Canonical `SDK_ROUTE_TIERS` registry mapping all SDK-facing routes (`/classify/*`, `/files/*`, `/logs`, `/alerts`, `/domains/telemetry`).
+
+3. **Atomic Rollup Model (`apps/api/src/models/usage-rollup.model.ts`)**:
+   - Daily per-domain rollup documents (`UsageRollup`) using atomic `$inc` updates (no per-call documents).
+   - Unique compound index on `{ domainId: 1, date: 1 }` and secondary index on `{ userId: 1, date: 1 }`.
+   - 100% local persistence on developer machine via `apps/api/data/mongo-dev`.
+
+4. **Metering & Quota Service (`apps/api/src/services/metering.service.ts`)**:
+   - `recordUsage()`: atomic `$inc` for 2xx responses (billable units), increments `requestsTotal` on 4xx/5xx errors without billable units. Completely fail-safe error handling.
+   - `checkQuota()`: hard-blocks Free plan users when user-level cumulative usage across all domains (including deleted) exceeds 10,000 units and emits `QUOTA_EXCEEDED` security event. Allows Pro/Enterprise to accrue overage without blocking.
+   - `getUsageSummary()`: aggregates current-period units across all user domains and calculates projected overage in integer paisa.
+   - `getDomainDailyUsage()`: returns daily breakdown for domain owner (or admin) and rejects non-owners with 403.
+
+5. **Universal Site-Key Authentication Middleware (`apps/api/src/middleware/authenticate-site-key.ts`)**:
+   - Dual-auth: accepts `X-Site-Key` / `Bearer sk_live_...` (metered, domain-attributed) and User JWT `Bearer <jwt>` (unmetered, dashboard calls).
+   - Rejects unrecognized keys (401), unpaid suspended domains (402), and suspended domains (403).
+   - Validates browser `Origin` header against domain's registered origin; rejects mismatch with 403 and emits `DOMAIN_ORIGIN_MISMATCH`. Permits absence of `Origin` for server-to-server calls.
+   - Automatically transitions domain from `pending` -> `active` on first authenticated request; throttles `lastSeenAt` updates.
+   - Response interceptor meters 2xx responses on `'finish'`.
+
+6. **Per-Domain Rate Limiting (`apps/api/src/middleware/rate-limiter.ts`)**:
+   - Extended in-memory rate limiter to track both IP (`ip:${ip}`) and Domain (`domain:${domainId}`).
+   - Exported `apiRateLimiter` configured for SDK-facing endpoints.
+
+7. **Attribution & Domain Filtering**:
+   - Attached `domainId` to `SecurityEvent`, `Alert`, and `ClassificationRecord`.
+   - Added `domainId` query filtering to `GET /logs`, `GET /alerts`, and `GET /classify/history`.
+
+8. **Endpoints Mounted (`apps/api/src/routes/billing.routes.ts`, `classification.routes.ts`, `files.routes.ts`, `logs.routes.ts`, `alerts.routes.ts`)**:
+   - `GET /billing/usage`
+   - `GET /billing/usage/domains/:id`
+   - Mounted `authenticateOrSiteKey` and `apiRateLimiter` on SDK-facing endpoints.
+
+9. **Postman Collection**:
+   - Added `Phase 10b - Metering & Quotas` folder to `apps/api/postman/SentinelKey.postman_collection.json`.
+
+#### Verification Results
+
+- ✅ `tier-mapping.test.ts` — **7/7 passed**: verifies all SDK-facing routes have assigned tiers and unit weights.
+- ✅ `site-key-auth.test.ts` — **10/10 passed**: validates site key header/bearer auth, origin matching, server-to-server calls, pending->active transition, and unpaid/suspended rejections.
+- ✅ `metering.test.ts` — **5/5 passed**: validates atomic rollups, error requests without billable units, fail-safe DB error resilience, and unmetered JWT calls.
+- ✅ `quota-enforcement.test.ts` — **6/6 passed**: validates 10,000 Free hard cap, Pro overage accrual, non-reset on domain deletion/re-registration, and billing usage summaries.
+- ✅ `domain-rate-limiter.test.ts` — **2/2 passed**: validates per-domain rate limiting across multiple IPs and domain counter isolation.
+- ✅ Full API Suite: **27 passed test files, 199/199 tests passed**.
+- ✅ Full Workspace Tests (`pnpm -r --if-present test`): **All packages passed (API + SDK Example App)**.
+- ✅ Full Workspace Build (`pnpm -r build`): **All 6 packages compiled cleanly**.
+
+---
+
+### Sub-Phase 10c — Usage Invoicing, Khalti Payment and Suspension
+
+**Status:** ✅ Complete (2026-09-28)
+
+#### What was created & modified
+
+1. **Shared Types (`packages/shared-types`)**:
+   - `InvoiceType`: `'subscription' | 'usage'`.
+   - `IUsageInvoiceLineItem`: `{ tier?: string; units?: number; ratePaisa?: number; amountPaisa: number; description: string }`.
+   - Extended `IInvoice` with `type`, `domainId`, `domainOrigin`, `periodStart`, `periodEnd`, `lineItems`, `dueDate`.
+   - Security Events: added `USAGE_INVOICE_CREATED`, `DOMAIN_SUSPENDED_UNPAID`, and `DOMAIN_REACTIVATED_PAYMENT` to `SecurityEventType`.
+
+2. **Invoice Model (`apps/api/src/models/invoice.model.ts`)**:
+   - Schema extended with `type` (enum `subscription` / `usage`), `domainId`, `domainOrigin`, `periodStart`, `periodEnd`, `lineItems`, and `dueDate`.
+   - Idempotency index: compound unique index `{ domainId: 1, periodStart: 1, periodEnd: 1 }` with `{ partialFilterExpression: { type: 'usage', domainId: { $exists: true } } }`.
+
+3. **Usage Invoicing Configuration (`apps/api/src/config/metering.ts`)**:
+   - `MINIMUM_PAYABLE_PAISA = 1000` (NPR 10 minimum transaction threshold).
+   - `USAGE_INVOICE_GRACE_PERIOD_DAYS = 7` (7-day delinquency window).
+
+4. **Usage Invoicing Service (`apps/api/src/services/usage-invoicing.service.ts`)**:
+   - `closeBillingPeriodForUser()`: Idempotent period close for user domains. Computes per-domain overage as `max(0, units - included) × overage_rate_paisa` (integer paisa only). Free plan never generates usage invoices; sub-minimum amounts (< 1,000 paisa) roll forward.
+   - `checkDelinquency()`: Evaluates unpaid usage invoices past their 7-day grace period; suspends delinquent domains (`status: 'suspended'`, `suspensionReason: 'unpaid'`) and emits `DOMAIN_SUSPENDED_UNPAID`.
+   - `getAccruedOverageEstimate()`: Calculates accrued open-period overage estimates per domain and returns `isPayable` flag for UI.
+   - `onUsageInvoicePaid()`: Automatically reactivates suspended domains (`status: 'active'`) when overdue usage invoice is paid and emits `DOMAIN_REACTIVATED_PAYMENT`.
+
+5. **Billing Service Integration (`apps/api/src/services/billing.service.ts`)**:
+   - `checkoutUsageInvoice()`: Initiates Khalti checkout session for a specific usage invoice.
+   - `verifyPayment()`: Seamlessly verifies both subscription and usage invoices via `MockPaymentProvider` / Khalti ePayment v2. For usage invoices, executes domain reactivation and idempotently returns without disrupting subscription cadence. Preserves strict amount verification against tampering.
+   - `listInvoices()`: Extended with query filters for `type` (`'subscription'` | `'usage'`) and `domainId`.
+
+6. **In-Process Scheduler & Delinquency Hooks (`apps/api/src/index.ts`, `apps/api/src/controllers/billing.controller.ts`)**:
+   - Background delinquency checker interval registered in API server process.
+   - Lazy delinquency evaluation on caller requests to `listInvoices`, `getUsageSummary`, and `getAccruedOverageEstimate`.
+
+7. **Endpoints Mounted (`apps/api/src/routes/billing.routes.ts`)**:
+   - `GET /billing/invoices?type=usage&domainId=...`
+   - `POST /billing/invoices/:id/checkout`
+   - `GET /billing/verify?pidx=...` (reused for usage invoices)
+   - `GET /billing/usage/estimate`
+   - `POST /billing/usage/close`
+
+8. **Postman & Documentation**:
+   - Added `Phase 10c - Usage Invoicing & Payment` folder to `apps/api/postman/SentinelKey.postman_collection.json`.
+   - Added Section 11 to `docs/payment-integration.md` detailing the usage invoicing, Khalti checkout, and suspension flows.
+
+#### Verification Results
+
+- ✅ `usage-invoicing.test.ts` — **8/8 passed**:
+  - Worked example test: Pro domain with 40,000 units and 25,000 included at 4 paisa/unit produces an invoice of 60,000 paisa (NPR 600).
+  - Period close run twice yields exactly one invoice per domain (idempotency).
+  - Sub-minimum amount (< 1,000 paisa) is rolled forward, not created.
+  - Free plan never produces usage invoices.
+  - Usage invoice checkout & verification flow with `MockPaymentProvider`.
+  - Amount tampering at verify time is rejected.
+  - Unpaid past grace -> domain suspended and calls return 402; payment -> reactivated.
+  - `GET /billing/usage/estimate` returns accurate accrued overage and `isPayable` flag.
+- ✅ Full API Suite: **28 passed test files, 207/207 tests passed**.
+- ✅ Full Workspace Tests (`pnpm -r --if-present test`): **All packages passed (API + SDK Example App)**.
+- ✅ Full Workspace Build (`pnpm -r build`): **All 6 packages compiled cleanly**.
+
+
+

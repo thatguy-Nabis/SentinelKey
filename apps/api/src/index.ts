@@ -12,7 +12,7 @@ import filesRoutes from './routes/files.routes.js';
 import classificationRoutes from './routes/classification.routes.js';
 import policiesRoutes from './routes/policies.routes.js';
 import billingRoutes from './routes/billing.routes.js';
-import clientDomainRoutes from './routes/client-domain.routes.js';
+import domainRoutes from './routes/domain.routes.js';
 
 // Validate env vars (throws in production if secrets are missing)
 validateEnv();
@@ -46,8 +46,8 @@ app.use('/policies', policiesRoutes);
 // Billing & Subscription routes (Khalti & Mock)
 app.use('/billing', billingRoutes);
 
-// Client Application & Domain routes
-app.use('/domains', clientDomainRoutes);
+// Client Application & Domain routes (Phase 10)
+app.use('/domains', domainRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);
@@ -84,8 +84,20 @@ async function start(): Promise<void> {
     console.log(`SentinelKey API listening on port ${env.PORT}`);
   });
 
+  // In-process scheduled job for usage delinquency checks (every 60 minutes)
+  const delinquencyTimer = setInterval(async () => {
+    try {
+      const { usageInvoicingService } = await import('./services/usage-invoicing.service.js');
+      await usageInvoicingService.checkDelinquency();
+    } catch (err) {
+      console.error('[CRON] Failed usage delinquency check:', err);
+    }
+  }, 60 * 60 * 1000);
+  delinquencyTimer.unref();
+
   // Graceful shutdown: stop the in-memory Mongo alongside the HTTP server
   const shutdown = async () => {
+    clearInterval(delinquencyTimer);
     server.close();
     await stopMemoryMongo();
     process.exit(0);

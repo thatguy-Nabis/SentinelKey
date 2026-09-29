@@ -33,6 +33,7 @@ export async function createAlert(candidate: IAlertCandidate): Promise<IAlertDoc
     severity: candidate.severity,
     status: 'open',
     userId: candidate.userId,
+    domainId: candidate.domainId,
     ip: candidate.ip,
     triggerEventIds: candidate.triggerEventIds,
     metadata: candidate.metadata,
@@ -58,6 +59,7 @@ export interface IAlertQueryFilter {
   rule?: HeuristicRule;
   ip?: string;
   userId?: string;
+  domainId?: string;
   page?: number;
   limit?: number;
 }
@@ -78,6 +80,7 @@ export async function getAlerts(
   if (filters.rule) query.rule = filters.rule;
   if (filters.ip) query.ip = filters.ip;
   if (filters.userId) query.userId = filters.userId;
+  if (filters.domainId) query.domainId = filters.domainId;
 
   const [docs, total] = await Promise.all([
     Alert.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),

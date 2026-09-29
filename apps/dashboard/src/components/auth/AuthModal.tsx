@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage } from '../../services/api';
 import { Shield, Lock, Mail, KeyRound, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 export const AuthModal: React.FC = () => {
   const { login, register, verifyMfa, pendingMfaToken, cancelMfa } = useAuth();
+  const isMobile = useIsMobile(768);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('admin@sentinelkey.local');
@@ -65,15 +67,38 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: 460 }}>
+    <div
+      className={isMobile ? 'mobile-auth-viewport' : 'modal-overlay'}
+      style={
+        isMobile
+          ? {
+              minHeight: '100dvh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: 'calc(24px + var(--sat)) 20px calc(24px + var(--sab)) 20px',
+              backgroundColor: 'var(--bg-app)',
+            }
+          : undefined
+      }
+    >
+      <div
+        className="modal-content"
+        style={{
+          maxWidth: 460,
+          margin: isMobile ? 'auto 0' : undefined,
+          boxShadow: isMobile ? 'none' : undefined,
+          border: isMobile ? '1px solid var(--border-subtle)' : undefined,
+          padding: isMobile ? '24px 20px' : '28px',
+        }}
+      >
         {/* Header Icon */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
+              width: 52,
+              height: 52,
+              borderRadius: 14,
               background: 'linear-gradient(135deg, var(--color-indigo), var(--color-cyan))',
               display: 'inline-flex',
               alignItems: 'center',
@@ -83,12 +108,12 @@ export const AuthModal: React.FC = () => {
               marginBottom: 12,
             }}
           >
-            <Shield size={32} />
+            <Shield size={28} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: isMobile ? '1.3rem' : '1.4rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
             {pendingMfaToken ? 'Two-Factor Authentication' : mode === 'login' ? 'SentinelKey Access' : 'Create Account'}
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 4 }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
             {pendingMfaToken
               ? 'Enter the 6-digit code from your authenticator app or backup code'
               : mode === 'login'
@@ -130,13 +155,21 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="text"
                   className="form-input font-mono"
-                  style={{ paddingLeft: 40, fontSize: '1.1rem', letterSpacing: '0.15em', textAlign: 'center' }}
+                  style={{
+                    paddingLeft: 40,
+                    fontSize: '1.15rem',
+                    letterSpacing: '0.15em',
+                    textAlign: 'center',
+                    minHeight: 48,
+                  }}
                   placeholder="000000"
                   maxLength={12}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   autoFocus
                   required
                   value={mfaCode}
-                  onChange={e => setMfaCode(e.target.value)}
+                  onChange={(e) => setMfaCode(e.target.value)}
                 />
               </div>
             </div>
@@ -149,8 +182,8 @@ export const AuthModal: React.FC = () => {
               <select
                 className="form-select font-mono"
                 value={simulatedCity}
-                onChange={e => setSimulatedCity(e.target.value as 'default' | 'new_york' | 'london' | 'tokyo')}
-                style={{ fontSize: '0.8rem' }}
+                onChange={(e) => setSimulatedCity(e.target.value as 'default' | 'new_york' | 'london' | 'tokyo')}
+                style={{ fontSize: '0.82rem', minHeight: 44 }}
               >
                 <option value="default">Client IP (Default)</option>
                 <option value="new_york">New York, US (40.71, -74.00)</option>
@@ -163,7 +196,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ flex: 1 }}
+                style={{ flex: 1, minHeight: 48 }}
                 onClick={cancelMfa}
                 disabled={isSubmitting}
               >
@@ -172,10 +205,16 @@ export const AuthModal: React.FC = () => {
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ flex: 2 }}
+                style={{ flex: 2, minHeight: 48 }}
                 disabled={isSubmitting || !mfaCode.trim()}
               >
-                {isSubmitting ? 'Verifying...' : 'Verify & Enter'}
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" /> Verifying...
+                  </>
+                ) : (
+                  'Verify & Enter'
+                )}
               </button>
             </div>
           </form>
@@ -192,11 +231,13 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="email"
                   className="form-input"
-                  style={{ paddingLeft: 40 }}
+                  style={{ paddingLeft: 40, minHeight: 48 }}
                   placeholder="name@domain.com"
                   required
+                  autoComplete="username email"
+                  inputMode="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -211,12 +252,13 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="password"
                   className="form-input"
-                  style={{ paddingLeft: 40 }}
+                  style={{ paddingLeft: 40, minHeight: 48 }}
                   placeholder="••••••••"
                   minLength={8}
                   required
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>
@@ -229,8 +271,8 @@ export const AuthModal: React.FC = () => {
                 <select
                   className="form-select font-mono"
                   value={simulatedCity}
-                  onChange={e => setSimulatedCity(e.target.value as 'default' | 'new_york' | 'london' | 'tokyo')}
-                  style={{ fontSize: '0.8rem' }}
+                  onChange={(e) => setSimulatedCity(e.target.value as 'default' | 'new_york' | 'london' | 'tokyo')}
+                  style={{ fontSize: '0.82rem', minHeight: 44 }}
                 >
                   <option value="default">Client IP (Default)</option>
                   <option value="new_york">New York, US (40.71, -74.00)</option>
@@ -243,7 +285,7 @@ export const AuthModal: React.FC = () => {
             <button
               type="submit"
               className="btn btn-primary"
-              style={{ width: '100%', marginTop: 8 }}
+              style={{ width: '100%', minHeight: 48, marginTop: 8 }}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -273,6 +315,9 @@ export const AuthModal: React.FC = () => {
                   fontSize: '0.85rem',
                   cursor: 'pointer',
                   textDecoration: 'underline',
+                  minHeight: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
                 }}
               >
                 {mode === 'login'

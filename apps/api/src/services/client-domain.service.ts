@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import crypto from 'node:crypto';
 import {
   DomainEnvironment,
-  IClientDomain,
   IRegisterDomainRequest,
   IDomainProbeResult,
   IDomainTelemetryPayload,

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { IBillingPlan, BillingPlanId } from '@sentinelkey/shared-types';
 import * as api from '../../services/api';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 const PLAN_RANK: Record<BillingPlanId, number> = { free: 0, pro: 1, enterprise: 2 };
 
@@ -130,6 +131,7 @@ const PLAN_COLORS: Record<BillingPlanId, { bg: string; color: string; border: st
 
 export const ServiceGuide: React.FC<{ onNavigateTab: (tab: string) => void }> = ({ onNavigateTab }) => {
   const { isAdmin } = useAuth();
+  const isMobile = useIsMobile(768);
   const [plan, setPlan] = useState<IBillingPlan | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -159,7 +161,7 @@ export const ServiceGuide: React.FC<{ onNavigateTab: (tab: string) => void }> = 
   const planBadge = PLAN_COLORS[planId] ?? PLAN_COLORS.free;
 
   return (
-    <div className="glass-panel" style={{ height: 280, display: 'flex', flexDirection: 'column' }}>
+    <div className="glass-panel" style={{ height: isMobile ? 320 : 280, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <Shield size={18} style={{ color: 'var(--color-cyan)' }} />
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Service Guide</h3>

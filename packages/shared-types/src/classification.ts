@@ -25,6 +25,7 @@ export interface IClassificationResult {
   matchedRules: IMatchedRule[];
   policyVersion: number;
   policyId?: string;
+  domainId?: string;
   timestamp: string | Date;
   metadata?: Record<string, unknown>;
 }

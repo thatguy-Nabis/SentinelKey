@@ -11,6 +11,7 @@ export const env = {
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 900_000), // 15 min
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX ?? 10),
+  RATE_LIMIT_API_MAX: Number(process.env.RATE_LIMIT_API_MAX ?? 120),
   MFA_ENCRYPTION_KEY: process.env.MFA_ENCRYPTION_KEY ?? 'dev-mfa-encryption-key-32chars!!',
   MFA_MAX_FAILED_ATTEMPTS: Number(process.env.MFA_MAX_FAILED_ATTEMPTS ?? 5),
   MFA_LOCKOUT_DURATION_MS: Number(process.env.MFA_LOCKOUT_DURATION_MS ?? 300_000), // 5 min

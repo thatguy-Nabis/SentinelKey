@@ -11,6 +11,7 @@ export interface IAlertCandidate {
   rule: HeuristicRule;
   severity: AlertSeverity;
   userId?: string;
+  domainId?: string;
   ip: string;
   triggerEventIds: string[];
   metadata: Record<string, unknown>;

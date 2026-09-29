@@ -66,9 +66,10 @@ export class EmailClassifierService {
     email: IEmailPayload;
     ip?: string;
     userId?: string;
+    domainId?: string;
     policyVersion?: number;
   }): Promise<IClassificationResult> {
-    const { email, ip = '127.0.0.1', userId, policyVersion } = params;
+    const { email, ip = '127.0.0.1', userId, domainId, policyVersion } = params;
 
     const policy = await getActivePolicy('email', policyVersion);
     const version = policy ? policy.version : 1;
@@ -256,6 +257,7 @@ export class EmailClassifierService {
       matchedRules,
       policyVersion: version,
       policyId,
+      domainId,
       timestamp: new Date(),
       metadata: {
         from: email.from,
@@ -266,7 +268,7 @@ export class EmailClassifierService {
     };
 
     // Audit log & trigger IDS alert if not safe
-    await recordAndAlert(result, { ip, userId });
+    await recordAndAlert(result, { ip, userId, domainId });
 
     return result;
   }

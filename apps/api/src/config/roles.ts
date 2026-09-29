@@ -14,7 +14,7 @@ export interface RoleSeed {
 export const DEFAULT_ROLES: RoleSeed[] = [
   {
     name: 'admin',
-    description: 'Full system access — manages users, roles, settings, and all security features.',
+    description: 'Full system access — manages users, roles, settings, domains, and all security features.',
     permissions: [
       'users:read', 'users:write', 'users:delete',
       'roles:read', 'roles:write',
@@ -24,12 +24,13 @@ export const DEFAULT_ROLES: RoleSeed[] = [
       'encryption:read', 'encryption:write',
       'files:read', 'files:write', 'files:delete',
       'classify:read', 'classify:write',
+      'domains:read', 'domains:write', 'domains:manage',
     ],
     isDefault: false,
   },
   {
     name: 'analyst',
-    description: 'Security analyst — can view/manage logs, alerts, and classifications.',
+    description: 'Security analyst — can view/manage logs, alerts, classifications, and domains.',
     permissions: [
       'users:read',
       'roles:read',
@@ -38,12 +39,13 @@ export const DEFAULT_ROLES: RoleSeed[] = [
       'encryption:read',
       'files:read', 'files:write',
       'classify:read', 'classify:write',
+      'domains:read', 'domains:write',
     ],
     isDefault: false,
   },
   {
     name: 'viewer',
-    description: 'Read-only access to logs, alerts, and settings.',
+    description: 'Standard access to logs, alerts, settings, and own domains.',
     permissions: [
       'users:read',
       'roles:read',
@@ -52,6 +54,7 @@ export const DEFAULT_ROLES: RoleSeed[] = [
       'settings:read',
       'files:read',
       'classify:read',
+      'domains:read', 'domains:write',
     ],
     isDefault: true,
   },

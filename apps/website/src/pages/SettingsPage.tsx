@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { HubHeader } from '../components/hub/HubHeader.js';
 import { HubSidebar } from '../components/hub/HubSidebar.js';
 import { useAuth } from '../context/AuthContext.js';
+import { api } from '../services/api.js';
 import {
   User,
   Mail,
@@ -29,7 +30,7 @@ export const SettingsPage: React.FC = () => {
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const username = user?.email.split('@')[0] || 'alexchen';
+  const username = user?.email ? user.email.split('@')[0] : 'operator';
 
   // Default to 'account' if no tab param
   const activeTab = tab || 'account';
@@ -42,34 +43,57 @@ export const SettingsPage: React.FC = () => {
   };
 
   // --------------------------------------------------------------------------
-  // Tab 1: Account Information State
+  // Tab 1: Account Information State (with local persistence)
   // --------------------------------------------------------------------------
-  const [fullName, setFullName] = useState('Alex Chen');
-  const [accountUsername, setAccountUsername] = useState(username);
-  const [company, setCompany] = useState('SentinelKey Labs');
-  const [timezone, setTimezone] = useState('UTC+05:45 (Kathmandu)');
+  const profileStorageKey = `sentinelkey_profile_${user?.id || 'guest'}`;
+  const getStoredProfile = () => {
+    try {
+      const raw = localStorage.getItem(profileStorageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+  const cachedProfile = getStoredProfile();
+
+  const [fullName, setFullName] = useState(
+    cachedProfile?.fullName || (user?.email ? user.email.split('@')[0].toUpperCase() : 'Security Admin'),
+  );
+  const [accountUsername, setAccountUsername] = useState(cachedProfile?.accountUsername || username);
+  const [company, setCompany] = useState(cachedProfile?.company || 'Local Dev Environment');
+  const [timezone, setTimezone] = useState(cachedProfile?.timezone || 'UTC+05:45 (Kathmandu)');
   const [isSavingAccount, setIsSavingAccount] = useState(false);
 
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingAccount(true);
+    try {
+      localStorage.setItem(
+        profileStorageKey,
+        JSON.stringify({ fullName, accountUsername, company, timezone }),
+      );
+    } catch {}
     setTimeout(() => {
       setIsSavingAccount(false);
       showToast('Account details successfully updated.');
-    }, 600);
+    }, 400);
   };
 
   // --------------------------------------------------------------------------
   // Tab 2: Email & Identity State
   // --------------------------------------------------------------------------
-  const [primaryEmail, setPrimaryEmail] = useState(user?.email || 'alexchen@sentinelkey.io');
-  const [backupEmail, setBackupEmail] = useState('alex.backup@protonmail.com');
+  const [primaryEmail, setPrimaryEmail] = useState(user?.email || 'operator@sentinelkey.local');
+  const [backupEmail, setBackupEmail] = useState(cachedProfile?.backupEmail || 'backup@sentinelkey.local');
   const [notifyIdsAlerts, setNotifyIdsAlerts] = useState(true);
   const [notifyMlAnomalies, setNotifyMlAnomalies] = useState(true);
   const [notifyKhaltiInvoices, setNotifyKhaltiInvoices] = useState(true);
 
   const handleSaveEmail = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const existing = getStoredProfile() || {};
+      localStorage.setItem(profileStorageKey, JSON.stringify({ ...existing, backupEmail }));
+    } catch {}
     showToast('Email preferences & alert routing updated.');
   };
 
@@ -94,7 +118,9 @@ export const SettingsPage: React.FC = () => {
 
   const pwdScore = calculatePasswordStrength(newPassword);
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword) {
       setPasswordError('Please provide your current password.');
@@ -108,11 +134,20 @@ export const SettingsPage: React.FC = () => {
       setPasswordError('New passwords do not match.');
       return;
     }
+
+    setIsUpdatingPassword(true);
     setPasswordError('');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    showToast('Master password successfully changed.');
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Master password successfully updated in your SentinelKey account.');
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -983,20 +1018,21 @@ export const SettingsPage: React.FC = () => {
 
                     <button
                       type="submit"
+                      disabled={isUpdatingPassword}
                       style={{
-                        backgroundColor: 'var(--hub-purple-primary)',
+                        backgroundColor: isUpdatingPassword ? '#4C1D95' : 'var(--hub-purple-primary)',
                         color: '#ffffff',
                         padding: '0.65rem 1.4rem',
                         borderRadius: '6px',
                         fontSize: '0.85rem',
                         fontWeight: 600,
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: isUpdatingPassword ? 'not-allowed' : 'pointer',
                         marginTop: '0.5rem',
                         width: 'fit-content',
                       }}
                     >
-                      Update Password
+                      {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
                     </button>
                   </form>
                 </div>
