@@ -242,7 +242,7 @@ export const Features: React.FC = () => {
                 </h3>
               </div>
               <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                JWT access tokens (15m) with refresh token rotation and reuse detection. In-repo RFC 6238 TOTP with AES-256-GCM encrypted secrets, 8 single-use recovery codes, QR codes, and exponential lockout backoff.
+                Secure login with short-lived tokens, automatic refresh rotation, and built-in two-factor authentication — no third-party auth service required.
               </p>
               <div
                 style={{
@@ -280,7 +280,7 @@ export const Features: React.FC = () => {
                 </h3>
               </div>
               <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                Near-real-time heuristics tracking failed login bursts, Haversine geo-velocity impossible travel (&gt;800 km/h), and privilege escalation. Integrated Python Isolation Forest scoring 8D telemetry.
+                Catches brute-force attacks, impossible travel, and privilege abuse in real time — with ML anomaly scoring running alongside rule-based alerts.
               </p>
               <div
                 style={{
@@ -318,7 +318,7 @@ export const Features: React.FC = () => {
                 </h3>
               </div>
               <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                AES-256-GCM field encryption (`enc:v1:...`) and SKF1 binary envelopes for file storage with SHA-256 integrity verification. Cryptographic domain separation via HKDF-SHA256 and zero-downtime key rotation.
+                Encrypt sensitive fields and files at rest with a single API call. Keys rotate without downtime, and every file is integrity-checked before decryption.
               </p>
               <div
                 style={{
@@ -356,7 +356,7 @@ export const Features: React.FC = () => {
                 </h3>
               </div>
               <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                Deterministic classifiers for binary magic bytes, Shannon entropy ($H &gt; 7.7$), typosquatting domains, and deceptive URLs. Paired with a Manifest V3 browser extension for pre-flight upload defense.
+                Detects disguised files, phishing links, and typosquatted domains instantly. A companion browser extension blocks threats before files even leave the browser.
               </p>
               <div
                 style={{

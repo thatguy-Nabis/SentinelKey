@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": "apps/api",
+      "framework": "express"
+    },
+    "dashboard": {
+      "root": "apps/dashboard",
+      "framework": "vite"
+    },
+    "ml-service": {
+      "root": "apps/ml-service",
+      "framework": "flask"
+    },
+    "website": {
+      "root": "apps/website",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "dashboard"
+      }
+    }
+  ]
+}
