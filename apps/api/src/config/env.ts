@@ -17,10 +17,10 @@ export const env = {
   MFA_LOCKOUT_DURATION_MS: Number(process.env.MFA_LOCKOUT_DURATION_MS ?? 300_000), // 5 min
   MFA_TOKEN_EXPIRES_IN: process.env.MFA_TOKEN_EXPIRES_IN ?? '5m',
   ENCRYPTION_MASTER_KEY: process.env.ENCRYPTION_MASTER_KEY ?? 'dev-encryption-master-key-32ch!!',
-  FILE_STORAGE_DIR: process.env.FILE_STORAGE_DIR ?? 'data/encrypted-files',
+  FILE_STORAGE_DIR: process.env.FILE_STORAGE_DIR ?? (process.env.VERCEL ? '/tmp/encrypted-files' : 'data/encrypted-files'),
   ACTIVE_KEY_VERSION: Number(process.env.ACTIVE_KEY_VERSION ?? 1),
   ENCRYPTION_MASTER_KEYS: process.env.ENCRYPTION_MASTER_KEYS ?? '',
-  KEY_REGISTRY_PATH: process.env.KEY_REGISTRY_PATH ?? '',
+  KEY_REGISTRY_PATH: process.env.KEY_REGISTRY_PATH ?? (process.env.VERCEL ? '/tmp/key-registry.json' : ''),
   BOOTSTRAP_ADMIN_EMAIL: process.env.BOOTSTRAP_ADMIN_EMAIL ?? '',
   BOOTSTRAP_ADMIN_PASSWORD: process.env.BOOTSTRAP_ADMIN_PASSWORD ?? '',
   ML_SERVICE_URL: process.env.ML_SERVICE_URL ?? 'http://localhost:5001',

@@ -71,14 +71,39 @@ async function resolveMongoUri(): Promise<{ uri: string; ephemeral: boolean }> {
   return { uri: env.MONGODB_URI, ephemeral: false };
 }
 
-// Start server
-async function start(): Promise<void> {
-  const { uri, ephemeral } = await resolveMongoUri();
-  if (ephemeral) {
-    console.log('[DB] Using ephemeral in-memory MongoDB (data is lost on restart).');
-  }
+import mongoose from 'mongoose';
 
-  await connectDatabase(uri);
+let dbPromise: Promise<void> | null = null;
+
+export async function ensureConnected(): Promise<void> {
+  if (mongoose.connection.readyState === 1) return;
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const { uri, ephemeral } = await resolveMongoUri();
+      if (ephemeral) {
+        console.log('[DB] Using ephemeral in-memory MongoDB (data is lost on restart).');
+      }
+      await connectDatabase(uri);
+    })().catch((err) => {
+      dbPromise = null;
+      throw err;
+    });
+  }
+  return dbPromise;
+}
+
+// Ensure database connection before routing (essential for Vercel serverless)
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureConnected();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+async function start(): Promise<void> {
+  await ensureConnected();
 
   const server = app.listen(env.PORT, () => {
     console.log(`SentinelKey API listening on port ${env.PORT}`);
@@ -106,9 +131,13 @@ async function start(): Promise<void> {
   process.on('SIGTERM', shutdown);
 }
 
-start().catch((err) => {
-  console.error('[FATAL] Failed to start:', err);
-  process.exit(1);
-});
+// Start standalone HTTP server in non-serverless environments (local dev / Docker)
+if (!process.env.VERCEL) {
+  start().catch((err) => {
+    console.error('[FATAL] Failed to start:', err);
+    process.exit(1);
+  });
+}
 
+export default app;
 export { app };
