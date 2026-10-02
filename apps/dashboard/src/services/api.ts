@@ -49,6 +49,14 @@ export function getErrorMessage(err: unknown, fallback = 'An unexpected error oc
   return err instanceof Error ? err.message : fallback;
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+export function getFullUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}${normalized}` : normalized;
+}
+
 // Single-flight refresh: concurrent 401s and the auth bootstrap must share ONE
 // refresh request. Sending the same refresh token twice in parallel triggers the
 // server's reuse detection, which invalidates ALL sessions for the user.
@@ -61,7 +69,7 @@ export async function refreshAccessToken(): Promise<boolean> {
     const refreshToken = getStoredRefreshToken();
     if (!refreshToken) return false;
     try {
-      const refreshRes = await fetch('/auth/refresh', {
+      const refreshRes = await fetch(getFullUrl('/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
@@ -102,7 +110,7 @@ async function request<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(getFullUrl(url), { ...options, headers });
 
   // Handle automatic silent refresh on 401
   if (response.status === 401 && !isRetry && !url.includes('/auth/login') && !url.includes('/auth/refresh')) {
@@ -247,7 +255,7 @@ export async function resolveAlert(alertId: string): Promise<IAlert> {
 
 export async function checkApiHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/health');
+    const res = await fetch(getFullUrl('/health'));
     return res.ok;
   } catch {
     return false;
