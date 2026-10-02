@@ -88,12 +88,12 @@ export class FileClassifierService {
     let totalScore = 0;
 
     const isRuleActive = (ruleId: string) => {
-      const r = rules.find(x => x.id === ruleId);
+      const r = rules.find((x: any) => x.id === ruleId);
       return r ? r.enabled : true;
     };
 
     const getRuleScore = (ruleId: string, defaultScore: number) => {
-      const r = rules.find(x => x.id === ruleId);
+      const r = rules.find((x: any) => x.id === ruleId);
       return r ? r.score : defaultScore;
     };
 
@@ -122,7 +122,7 @@ export class FileClassifierService {
     // --- RULE FILE-002: Shannon Entropy Anomaly ---
     if (isRuleActive('FILE-002') && buffer.length >= 64) {
       const entropy = this.calculateShannonEntropy(buffer);
-      const ruleDef = rules.find(x => x.id === 'FILE-002');
+      const ruleDef = rules.find((x: any) => x.id === 'FILE-002');
       const entropyThreshold = (ruleDef?.params?.entropyThreshold as number) || 7.7;
 
       // Documents and scripts shouldn't have near-maximum entropy (which indicates packed payload or encrypted binary)
@@ -167,7 +167,7 @@ export class FileClassifierService {
 
     // --- RULE FILE-004: Known Malware Hash Match ---
     if (isRuleActive('FILE-004')) {
-      const ruleDef = rules.find(x => x.id === 'FILE-004');
+      const ruleDef = rules.find((x: any) => x.id === 'FILE-004');
       const defaultBlocked = [
         // Standard EICAR test string hash
         '275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f',

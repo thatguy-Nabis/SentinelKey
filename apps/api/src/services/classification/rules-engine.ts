@@ -89,7 +89,7 @@ export async function recordAndAlert(
       alertRule = 'EMAIL_CLASSIFICATION_PHISHING';
     }
 
-    const ruleNames = result.matchedRules.map(r => r.name).join(', ');
+    const ruleNames = result.matchedRules.map((r: any) => r.name).join(', ');
 
     try {
       await createAlert({
