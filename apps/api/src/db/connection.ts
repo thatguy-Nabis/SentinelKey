@@ -1,3 +1,4 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { env } from '../config/env.js';
@@ -50,6 +51,20 @@ export async function connectDatabase(uri: string): Promise<void> {
     await seedDefaultPolicies();
     await seedBootstrapAdmin();
   } catch (err) {
+    if (err instanceof Error && err.message.includes('querySrv')) {
+      try {
+        console.log('[DB] Retrying MongoDB Atlas SRV resolution with public DNS...');
+        dns.setServers(['8.8.8.8', '1.1.1.1']);
+        await mongoose.connect(uri);
+        console.log('[DB] Connected to MongoDB via public DNS');
+        await seedRoles();
+        await seedDefaultPolicies();
+        await seedBootstrapAdmin();
+        return;
+      } catch (retryErr) {
+        console.error('[DB] Connection retry failed:', retryErr);
+      }
+    }
     console.error('[DB] Connection failed:', err);
     process.exit(1);
   }
