@@ -157,3 +157,65 @@ def test_held_out_false_positive_rate():
     fpr = fp / len(normal_test_samples)
     # Measured FPR must be <= 5%
     assert fpr <= 0.05, f"False Positive Rate {fpr:.4f} exceeds 5% threshold"
+
+
+def test_hardcoded_model_zero_dependencies():
+    """Verify that hardcoded zero-dependency model runs and scores accurately without external libraries."""
+    from hardcoded_model import HardcodedAnomalyDetector, score_vector, extract_features
+
+    detector = HardcodedAnomalyDetector()
+    assert detector.model_version == "v1.0.0"
+    assert len(detector.trees) == 100
+
+    # Normal office login
+    normal_res = detector.score_vector([0.58, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+    assert normal_res["is_anomaly"] is False
+    assert normal_res["anomaly_score"] < 0.65
+
+    # Brute force attack
+    brute_res = detector.score_vector([0.12, 1.0, 0.0, 1.0, 45.0, 0.0, 0.0, 1.0])
+    assert brute_res["is_anomaly"] is True
+    assert brute_res["anomaly_score"] >= 0.65
+    assert len(brute_res["contributing_features"]) > 0
+
+    # Impossible travel
+    travel_res = detector.score_vector([0.50, 0.0, 0.0, 0.0, 2.0, 5570.0, 66000.0, 2.0])
+    assert travel_res["is_anomaly"] is True
+    assert travel_res["anomaly_score"] >= 0.65
+
+
+def test_hardcoded_model_numpy_pandas():
+    """Verify that hardcoded model natively supports numpy arrays and pandas DataFrames."""
+    import pandas as pd
+    from hardcoded_model import AnomalyDetector, score_dataframe
+
+    detector = AnomalyDetector()
+
+    # 1. Test NumPy array input
+    np_vector = np.array([0.58, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0], dtype=np.float64)
+    res_np = detector.score_vector(np_vector)
+    assert res_np["is_anomaly"] is False
+    assert res_np["anomaly_score"] < 0.65
+
+    # 2. Test Pandas DataFrame input
+    df = pd.DataFrame([
+        [0.58, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+        [0.12, 1.0, 0.0, 1.0, 45.0, 0.0, 0.0, 1.0],
+        [0.50, 0.0, 0.0, 0.0, 2.0, 5570.0, 66000.0, 2.0]
+    ], columns=FEATURE_NAMES, index=["normal", "brute_force", "impossible_travel"])
+
+    scored_df = detector.score_dataframe(df)
+    assert isinstance(scored_df, pd.DataFrame)
+    assert list(scored_df.index) == ["normal", "brute_force", "impossible_travel"]
+    assert not scored_df.loc["normal", "is_anomaly"]
+    assert scored_df.loc["brute_force", "is_anomaly"]
+    assert scored_df.loc["impossible_travel", "is_anomaly"]
+
+    # 3. Test baseline dataframe
+    baseline_df = detector.get_baselines_df()
+    assert isinstance(baseline_df, pd.DataFrame)
+    assert len(baseline_df) == 8
+    assert "mean" in baseline_df.columns
+    assert "std" in baseline_df.columns
+
+

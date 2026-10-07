@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict
 
+# pyrefly: ignore [missing-import]
 from flask import Flask, jsonify, request
 
 from features import FEATURE_NAMES, extract_features
@@ -15,20 +16,40 @@ MODEL_PATH = os.environ.get("MODEL_PATH", "models/anomaly_detector.pkl")
 detector: AnomalyDetector
 
 
-def load_or_init_model() -> AnomalyDetector:
+def load_or_init_model() -> Any:
     global detector
+    # Support loading pure Python zero-dependency model
+    if MODEL_PATH.endswith(".py"):
+        try:
+            from hardcoded_model import HardcodedAnomalyDetector
+            detector = HardcodedAnomalyDetector()
+            print(f"[ML] Loaded zero-dependency hardcoded model {detector.model_version}")
+            return detector
+        except Exception as e:
+            print(f"[ML] Failed to load hardcoded model: {e}")
+
     if os.path.exists(MODEL_PATH):
         try:
             detector = AnomalyDetector.load(MODEL_PATH)
             print(f"[ML] Successfully loaded model {detector.model_version} from {MODEL_PATH}")
             return detector
         except Exception as e:
-            print(f"[ML] Failed to load model from {MODEL_PATH}: {e}. Retraining...")
+            print(f"[ML] Failed to load model from {MODEL_PATH}: {e}.")
+
+    # Fallback to zero-dependency hardcoded model before retraining
+    try:
+        from hardcoded_model import HardcodedAnomalyDetector
+        detector = HardcodedAnomalyDetector()
+        print(f"[ML] Loaded zero-dependency hardcoded model {detector.model_version}")
+        return detector
+    except Exception:
+        pass
 
     print("[ML] Initializing and training baseline model...")
     res = train_and_evaluate(model_path=MODEL_PATH)
     detector = AnomalyDetector.load(MODEL_PATH)
     return detector
+
 
 
 # Load model at startup
